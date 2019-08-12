@@ -38,7 +38,6 @@ int main(int argc, char const *argv[]) {
 	// 	<< rec_coords[i][2] << std::endl;
 	// }
 
-
 	float dt = 2e-2;
 	size_t nx = 10;
 	size_t ny = 10;
@@ -56,9 +55,9 @@ int main(int argc, char const *argv[]) {
 	float* area_discr = new float[times*nx*ny*nz];
 
 	float dx, dy, dz;
-	if (1 < nx) dx = (float)(x1-x0)/nx-1;
-	if (1 < ny) dy = (float)(y1-y0)/ny-1;
-	if (1 < nz) dz = (float)(z1-z0)/nz-1;
+	if (0 < nx) dx = ((float)(x1-x0))/(nx-1);
+	if (0 < ny) dy = ((float)(y1-y0))/(ny-1);
+	if (0 < nz) dz = ((float)(z1-z0))/(nz-1);
 
 	double t1, t2;
 
