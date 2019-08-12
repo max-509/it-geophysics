@@ -1,6 +1,7 @@
 #include <iostream>
 #include <cstdio>
 #include <cmath>
+#include <cstdlib>
 #include <omp.h>
 
 float calc_radius(float dx, float dy, float dz) {
@@ -52,7 +53,7 @@ int main(int argc, char const *argv[]) {
 	long long z0 = 500;
 	long long z1 = 2500;
 
-	float* area_discr = new float[(x1-x0)*(y1-y0)*(z1-z0)];
+	float* area_discr = new float[times*nx*ny*nz];
 
 	float dx, dy, dz;
 	if (1 < nx) dx = (float)(x1-x0)/nx-1;
@@ -78,13 +79,10 @@ int main(int argc, char const *argv[]) {
 						t = r/vv;
 						ind = (size_t)(t/dt);
 						if (ind < times) {
-							res += rec_times[m*times+ind];
+							res += rec_times[i+m*times+ind];
 						}
 					}
-					// std::cerr << "a";
-					if (res > area_discr[j*ny*nz+k*nz+l]) {
-						area_discr[j*ny*nz+k*nz+l] = res;
-					}
+					area_discr[i*nx*ny*nz+j*ny*nz+k*nz+l] = res;
 				}
 			}
 		}
