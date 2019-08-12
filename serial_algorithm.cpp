@@ -78,8 +78,8 @@ int main(int argc, char const *argv[]) {
 									    (z0+l*dz)-rec_coords[m*3+2]);
 						t = r/vv;
 						ind = (size_t)(t/dt);
-						if (ind < times) {
-							res += rec_times[i+m*times+ind];
+						if (i+ind < times) {
+							res += rec_times[m*times+ind+i];
 						}
 					}
 					area_discr[i*nx*ny*nz+j*ny*nz+k*nz+l] = res;
