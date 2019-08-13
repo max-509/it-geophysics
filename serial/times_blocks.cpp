@@ -83,6 +83,7 @@ int main(int argc, char const *argv[]) {
 	}
 	size_t block_size_by_times;
 	size_t rest_block_by_times = times%count_blocks_by_times;
+	size_t sum_block_size_by_times = 0;
 
 
 	t1 = omp_get_wtime();
@@ -97,7 +98,7 @@ int main(int argc, char const *argv[]) {
 		} else {
 			block_size_by_times = times/count_blocks_by_times;
 		}
-
+		sum_block_size_by_times += block_size_by_times;
 		for (size_t i = 0; i < nz; ++i) {
 			for (size_t j = 0; j < nx; ++j) {
 				for (size_t k = 0; k < ny; ++k) {
