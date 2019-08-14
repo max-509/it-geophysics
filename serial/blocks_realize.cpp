@@ -56,12 +56,19 @@ int main(int argc, char const *argv[]) {
 	double t1, t2;
 
 	size_t count_blocks_by_times = 1;
-	if (2 == argc) {
+	size_t count_blocks_by_rec = 1;
+	if (3 == argc) {
 		count_blocks_by_times = atoi(argv[1]);
+		count_blocks_by_rec = atoi(argv[2]);
 	}
+	
 	size_t block_size_by_times;
 	size_t rest_block_by_times = times%count_blocks_by_times;
 	size_t sum_block_size_by_times = 0;
+
+	size_t block_size_by_rec;
+	size_t rest_block_by_rec = rec_count%count_blocks_by_rec;
+	size_t sum_block_size_by_rec = 0;
 
 
 	t1 = omp_get_wtime();
