@@ -1,7 +1,9 @@
+#include <fstream>
 #include <iostream>
 #include <cstdio>
 #include <cmath>
 #include <cstdlib>
+#include <memory>
 #include <omp.h>
 
 float calc_radius(float dx, float dy, float dz) {
@@ -9,28 +11,27 @@ float calc_radius(float dx, float dy, float dz) {
 }
 
 int main(int argc, char const *argv[]) {
-	FILE* data_file = fopen("./Data_noise_free.bin", "r");
-	if (NULL == data_file) {
-		perror("Data_noise_free.bin");
-		exit(0);
+
+	std::ifstream data_file, receivers_file;
+	data_file.open("../Data_noise_free.bin", std::ios::binary);
+	if (!data_file.is_open()) {
+		std::cerr << "Can't open Data_noise_free.bin" << std::endl;
+		return 1;
 	}
-	FILE* receivers_file = fopen("./Receivers_Array.bin", "r");
-	if (NULL == receivers_file) {
-		perror("Receivers_Array.bin");
-		exit(0);
+	receivers_file.open("../Receivers_Array.bin", std::ios::binary);
+	if (!receivers_file.is_open()) {
+		std::cerr << "Can't open Receivers_Array.bin" << std::endl;
+		return 1;
 	}
 
 	size_t rec_count = 2000;
 	size_t times = 10000;
 
-	float* rec_coords = new float[rec_count*3];
-	float* rec_times = new float[rec_count*times];
+	std::unique_ptr<float[]> rec_times{new float[rec_count*times]()};
+	data_file.read(reinterpret_cast<char*>(rec_times.get()), rec_count*times*sizeof(float));
 
-	fread(rec_coords, sizeof(float), rec_count*3, receivers_file);
-	fread(rec_times, sizeof(float), rec_count*times, data_file);
-
-	fclose(receivers_file);
-	fclose(data_file);
+	std::unique_ptr<float[]> rec_coords{new float[rec_count*3]()};
+	receivers_file.read(reinterpret_cast<char*>(rec_coords.get()), rec_count*3*sizeof(float));
 
 	// for (size_t i = 0; i < rec_count; ++i) {
 	// 	// for (size_t j = 0; j < times; ++j) {
@@ -42,17 +43,17 @@ int main(int argc, char const *argv[]) {
 	// }
 
 
-	std::cerr << rec_times[0] << " " << rec_times[9999];
-	std::cerr << std::endl;
+	// std::cerr << rec_times[0] << " " << rec_times[9999];
+	// std::cerr << std::endl;
 
-	std::cerr << rec_times[1999*10000] << " " << rec_times[1999*10000+9999];
-	std::cerr << std::endl;
+	// std::cerr << rec_times[1999*10000] << " " << rec_times[1999*10000+9999];
+	// std::cerr << std::endl;
 
-	std::cerr << rec_coords[0] << " " << rec_coords[1] << " "
-	<< rec_coords[2] << std::endl;
+	// std::cerr << rec_coords[0] << " " << rec_coords[1] << " "
+	// << rec_coords[2] << std::endl;
 
-	std::cerr << rec_coords[1999*3] << " " << rec_coords[1999*3+1] << " "
-	<< rec_coords[1999*3+2] << std::endl;
+	// std::cerr << rec_coords[1999*3] << " " << rec_coords[1999*3+1] << " "
+	// << rec_coords[1999*3+2] << std::endl;
 
 	float dt = 2e-2;
 	size_t nx = 10;
@@ -68,7 +69,7 @@ int main(int argc, char const *argv[]) {
 	long long z0 = 500;
 	long long z1 = 2500;
 
-	float* area_discr = new float[times*nx*ny*nz];
+	std::unique_ptr<float[]> area_discr{new float[times*nx*ny*nz]()};
 
 	float dx, dy, dz;
 	if (1 < nx) dx = ((float)(x1-x0))/(nx-1);
@@ -113,40 +114,41 @@ int main(int argc, char const *argv[]) {
 	//******************************************************//
 	t2 = omp_get_wtime();
 
-	FILE* results_file = fopen("./Summation_Results.bin", "r");
-	if (NULL == results_file) {
-		perror("Summation_Results.bin");
-		exit(0);
+	// std::ifstream results_file;
+	// results_file.open("../Summation_Results.bin", std::ios::binary);
+	// if (!results_file.is_open()) {
+	// 	std::cerr << "Can't open Summation_Results.bin" << std::endl;
+	// 	return 1;
+	// }
+
+	// std::unique_ptr<float[]> real_results{new float[nx*ny*nz*times]};
+	// results_file.read(reinterpret_cast<char*>(real_results.get()), nx*ny*nz*times*sizeof(float));
+
+	// float result = 0;
+	// float temp1 = 0, temp2 = 0;
+	// for (size_t i = 0; i < nz; ++i) {
+	// 	for (size_t j = 0; j < nx; ++j) {
+	// 		for (size_t k = 0; k < ny; ++k) {
+	// 			for (size_t l = 0; l < times; ++l) {
+	// 				temp1 += (real_results[i*nx*ny*times+j*ny*times+k*times+l]-area_discr[i*nx*ny*times+j*ny*times+k*times+l])*
+	// 						 (real_results[i*nx*ny*times+j*ny*times+k*times+l]-area_discr[i*nx*ny*times+j*ny*times+k*times+l]);
+	// 				std::cout << real_results[i*nx*ny*times+j*ny*times+k*times+l] << " " << area_discr[i*nx*ny*times+j*ny*times+k*times+l] << std::endl;
+	// 				temp2 += real_results[i*nx*ny*times+j*ny*times+k*times+l]*real_results[i*nx*ny*times+j*ny*times+k*times+l];
+	// 			}
+	// 		}
+	// 	}
+	// }
+	// result = sqrt(temp1)/sqrt(temp2);
+
+	std::ofstream time_file;
+	time_file.open("./time_file", std::ios::out | std::ios::app);
+	if (!time_file.is_open()) {
+		std::cout << "Time: " << t2-t1 << std::endl;
+	} else {
+		time_file << "Source" << ": Time: " << t2-t1 << std::endl;
 	}
 
-	float* real_results = new float[nx*ny*nz*times];
-	fread(real_results, sizeof(float), nx*ny*nz*times, results_file);
-	fclose(results_file);
-
-	float result = 0;
-	float temp1 = 0, temp2 = 0;
-	for (size_t i = 0; i < nz; ++i) {
-		for (size_t j = 0; j < nx; ++j) {
-			for (size_t k = 0; k < ny; ++k) {
-				for (size_t l = 0; l < times; ++l) {
-					temp1 += (real_results[i*nx*ny*times+j*ny*times+k*times+l]-area_discr[i*nx*ny*times+j*ny*times+k*times+l])*
-							 (real_results[i*nx*ny*times+j*ny*times+k*times+l]-area_discr[i*nx*ny*times+j*ny*times+k*times+l]);
-					std::cout << real_results[i*nx*ny*times+j*ny*times+k*times+l] << " " << area_discr[i*nx*ny*times+j*ny*times+k*times+l] << std::endl;
-					temp2 += real_results[i*nx*ny*times+j*ny*times+k*times+l]*real_results[i*nx*ny*times+j*ny*times+k*times+l];
-				}
-			}
-		}
-	}
-	result = sqrt(temp1)/sqrt(temp2);
-
-	std::cout << "Time: " << t2-t1 << std::endl;
-
-	std::cout << "Result == " << result << std::endl;
-
-	delete [] real_results;
-	delete [] area_discr;
-	delete [] rec_coords;
-	delete [] rec_times;
+	// std::cout << "Result == " << result << std::endl;
 
 	return 0;
 }

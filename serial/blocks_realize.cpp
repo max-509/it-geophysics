@@ -1,7 +1,9 @@
+#include <fstream>
 #include <iostream>
 #include <cstdio>
 #include <cmath>
 #include <cstdlib>
+#include <memory>
 #include <omp.h>
 
 float calc_radius(float dx, float dy, float dz) {
@@ -9,28 +11,27 @@ float calc_radius(float dx, float dy, float dz) {
 }
 
 int main(int argc, char const *argv[]) {
-	FILE* data_file = fopen("./Data_noise_free.bin", "r");
-	if (NULL == data_file) {
-		perror("Data_noise_free.bin");
-		exit(0);
+
+	std::ifstream data_file, receivers_file;
+	data_file.open("../Data_noise_free.bin", std::ios::binary);
+	if (!data_file.is_open()) {
+		std::cerr << "Can't open Data_noise_free.bin" << std::endl;
+		return 1;
 	}
-	FILE* receivers_file = fopen("./Receivers_Array.bin", "r");
-	if (NULL == receivers_file) {
-		perror("Receivers_Array.bin");
-		exit(0);
+	receivers_file.open("../Receivers_Array.bin", std::ios::binary);
+	if (!receivers_file.is_open()) {
+		std::cerr << "Can't open Receivers_Array.bin" << std::endl;
+		return 1;
 	}
 
 	size_t rec_count = 2000;
 	size_t times = 10000;
 
-	float* rec_coords = new float[rec_count*3];
-	float* rec_times = new float[rec_count*times];
+	std::unique_ptr<float[]> rec_times{new float[rec_count*times]()};
+	data_file.read(reinterpret_cast<char*>(rec_times.get()), rec_count*times*sizeof(float));
 
-	fread(rec_coords, sizeof(float), rec_count*3, receivers_file);
-	fread(rec_times, sizeof(float), rec_count*times, data_file);
-
-	fclose(receivers_file);
-	fclose(data_file);
+	std::unique_ptr<float[]> rec_coords{new float[rec_count*3]()};
+	receivers_file.read(reinterpret_cast<char*>(rec_coords.get()), rec_count*3*sizeof(float));
 
 	float dt = 2e-2;
 	size_t nx = 10;
@@ -46,7 +47,7 @@ int main(int argc, char const *argv[]) {
 	long long z0 = 500;
 	long long z1 = 2500;
 
-	float* area_discr = new float[times*nx*ny*nz]();
+	std::unique_ptr<float[]> area_discr{new float[times*nx*ny*nz]()};
 
 	float dx, dy, dz;
 	if (1 < nx) dx = ((float)(x1-x0))/(nx-1);
@@ -86,19 +87,17 @@ int main(int argc, char const *argv[]) {
 		for (size_t i = 0; i < nz; ++i) {
 			for (size_t j = 0; j < nx; ++j) {
 				for (size_t k = 0; k < ny; ++k) {
-					for (size_t l = sum_block_size_by_times; l < sum_block_size_by_times+=block_size_by_times; ++l) {
-						res = 0;
-						for (size_t m = 0; m < rec_count; ++m) {
-							r = calc_radius((x0+j*dx)-rec_coords[m*3],
-										    (y0+k*dy)-rec_coords[m*3+1],
-										    (z0+i*dz)-rec_coords[m*3+2]);
-							t = r/vv;
-							ind = (size_t)(t/dt);
+					for (size_t m = 0; m < rec_count; ++m) {
+						r = calc_radius((x0+j*dx)-rec_coords[m*3],
+									    (y0+k*dy)-rec_coords[m*3+1],
+									    (z0+i*dz)-rec_coords[m*3+2]);
+						t = r/vv;
+						ind = (size_t)(t/dt);
+						for (size_t l = sum_block_size_by_times; l < sum_block_size_by_times+=block_size_by_times; ++l) {
 							if (l+ind < times) {
-								res += rec_times[m*times+ind+l];
-							}
+								area_discr[i*nx*ny*times+j*ny*times+k*times+l] += rec_times[m*times+ind+l];
+							} else break;
 						}
-						area_discr[i*nx*ny*times+j*ny*times+k*times+l] = res;
 					}
 				}
 			}
@@ -106,12 +105,6 @@ int main(int argc, char const *argv[]) {
 	}
 	//******************************************************//
 	t2 = omp_get_wtime();
-
-	std::cout << "Time: " << t2-t1 << std::endl;
-
-	delete [] area_discr;
-	delete [] rec_coords;
-	delete [] rec_times;
 
 	return 0;
 }

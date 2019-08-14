@@ -56,37 +56,36 @@ int main(int argc, char const *argv[]) {
 
 	double t1, t2;
 
-	size_t count_blocks_by_times = 1;
+	size_t count_blocks_by_rec = 1;
 	if (2 == argc) {
-		count_blocks_by_times = atoi(argv[1]);
+		count_blocks_by_rec = atoi(argv[1]);
 	}
-	size_t block_size_by_times;
-	size_t rest_block_by_times = times%count_blocks_by_times;
-	size_t sum_block_size_by_times = 0;
-
+	size_t block_size_by_rec;
+	size_t rest_block_by_rec = rec_count%count_blocks_by_rec;
+	size_t sum_block_size_by_rec = 0;
 
 	t1 = omp_get_wtime();
 	//algorithm
 	//******************************************************//
 	float r, t, res;
 	size_t ind;
-	for (size_t c = 0; c < count_blocks_by_times; ++c) {
-		if (rest_block_by_times > 0) {
-			block_size_by_times = times/count_blocks_by_times + 1;
-			--rest_block_by_times;
+	for (size_t c = 0; c < count_blocks_by_rec; ++c) {
+		if (rest_block_by_rec > 0) {
+			block_size_by_rec = rec_count/count_blocks_by_rec + 1;
+			--rest_block_by_rec;
 		} else {
-			block_size_by_times = times/count_blocks_by_times;
-		}
+			block_size_by_rec = rec_count/count_blocks_by_rec;
+		}	
 		for (size_t i = 0; i < nz; ++i) {
 			for (size_t j = 0; j < nx; ++j) {
 				for (size_t k = 0; k < ny; ++k) {
-					for (size_t m = 0; m < rec_count; ++m) {
+					for (size_t m = sum_block_size_by_rec; m < sum_block_size_by_rec+block_size_by_rec; ++m) {
 						r = calc_radius((x0+j*dx)-rec_coords[m*3],
 									    (y0+k*dy)-rec_coords[m*3+1],
 									    (z0+i*dz)-rec_coords[m*3+2]);
 						t = r/vv;
 						ind = (size_t)(t/dt);
-						for (size_t l = sum_block_size_by_times; l < sum_block_size_by_times+block_size_by_times; ++l) {
+						for (size_t l = 0; l < times; ++l) {
 							if (l+ind < times) {
 								area_discr[i*nx*ny*times+j*ny*times+k*times+l] += rec_times[m*times+ind+l];
 							} else break;
@@ -95,7 +94,7 @@ int main(int argc, char const *argv[]) {
 				}
 			}
 		}
-		sum_block_size_by_times+=block_size_by_times;
+		sum_block_size_by_rec += block_size_by_rec;
 	}
 	//******************************************************//
 	t2 = omp_get_wtime();
@@ -103,9 +102,9 @@ int main(int argc, char const *argv[]) {
 	std::ofstream time_file;
 	time_file.open("./time_file", std::ios::out | std::ios::app);
 	if (!time_file.is_open()) {
-		std::cout << "Count blocks: " << count_blocks_by_times << ", Time: " << t2-t1 << std::endl;
+		std::cout << "Count blocks: " << count_blocks_by_rec << ", Time: " << t2-t1 << std::endl;
 	} else {
-		time_file << "Times block" << ": Count blocks: " << count_blocks_by_times << ", Time: " << t2-t1 << std::endl;
+		time_file << "Receiver block" << ": Count blocks: " << count_blocks_by_rec << ", Time: " << t2-t1 << std::endl;
 	}
 
 	return 0;
