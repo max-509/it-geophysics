@@ -32,7 +32,7 @@ int main(int argc, char const *argv[]) {
 	fclose(receivers_file);
 	fclose(data_file);
 
-	// for (size_t i = 0; i < 1; ++i) {
+	// for (size_t i = 0; i < rec_count; ++i) {
 	// 	// for (size_t j = 0; j < times; ++j) {
 	// 		// std::cerr << rec_times[i][j] << " ";
 	// 	// }
