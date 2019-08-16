@@ -11,7 +11,7 @@ float calc_radius(float dx, float dy, float dz) {
 }
 
 int main(int argc, char const *argv[]) {
-	omp_set_num_threads(12);
+	omp_set_num_threads(4);
 
 	std::ifstream data_file, receivers_file;
 	data_file.open("../Data_noise_free.bin", std::ios::binary);

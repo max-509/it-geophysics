@@ -11,7 +11,7 @@ float calc_radius(float dx, float dy, float dz) {
 }
 
 int main(int argc, char const *argv[]) {
-	omp_set_num_threads(12);
+	omp_set_num_threads(4);
 	std::ifstream data_file, receivers_file;
 	data_file.open("../Data_noise_free.bin", std::ios::binary);
 	if (!data_file.is_open()) {
@@ -73,14 +73,14 @@ int main(int argc, char const *argv[]) {
 		float r, t, res;
 		size_t ind;
 		#pragma omp for schedule(guided)
-		for (size_t c = 0; c < count_blocks_by_times; ++c) {
-			if (rest_block_by_times > 0) {
-				block_size_by_times = times/count_blocks_by_times + 1;
-				--rest_block_by_times;
-			} else {
-				block_size_by_times = times/count_blocks_by_times;
-			}
-			for (size_t i = 0; i < nz; ++i) {
+		for (size_t i = 0; i < nz; ++i) {
+			for (size_t c = 0; c < count_blocks_by_times; ++c) {
+				if (rest_block_by_times > 0) {
+					block_size_by_times = times/count_blocks_by_times + 1;
+					--rest_block_by_times;
+				} else {
+					block_size_by_times = times/count_blocks_by_times;
+				}
 				for (size_t j = 0; j < nx; ++j) {
 					for (size_t k = 0; k < ny; ++k) {
 						for (size_t l = sum_block_size_by_times; l < sum_block_size_by_times+block_size_by_times; ++l) {
@@ -99,8 +99,8 @@ int main(int argc, char const *argv[]) {
 						}
 					}
 				}
-			}
 			sum_block_size_by_times+=block_size_by_times;
+			}
 		}
 	}
 	//******************************************************//
