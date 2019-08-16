@@ -6,12 +6,26 @@
 #include <memory>
 #include <omp.h>
 
+typedef float v4sf __attribute__ ((vector_size(16)));
+
+union f4 {
+	v4sf v;
+	float f[4];
+};
+
+void v4sf_addmov(float* v1, const float* v2) {
+
+	f4 temp = {v1[0], v1[1], v1[2], v1[3]};
+	temp.v += *((v4sf*)v2);
+	__builtin_ia32_movntps(v1, temp.v);
+}
+
 float calc_radius(float dx, float dy, float dz) {
 	return sqrt(dx*dx+dy*dy+dz*dz);
 }
 
 int main(int argc, char const *argv[]) {
-	omp_set_num_threads(12);
+	omp_set_num_threads(1);
 	std::ifstream data_file, receivers_file;
 	data_file.open("../Data_noise_free.bin", std::ios::binary);
 	if (!data_file.is_open()) {
@@ -34,7 +48,7 @@ int main(int argc, char const *argv[]) {
 	receivers_file.read(reinterpret_cast<char*>(rec_coords.get()), rec_count*3*sizeof(float));
 
 	float dt = 2e-2;
-	size_t nx = 100;
+	size_t nx = 10;
 	size_t ny = 10;
 	size_t nz = 100;
 
@@ -88,7 +102,14 @@ int main(int argc, char const *argv[]) {
 										    (z0+i*dz)-rec_coords[m*3+2]);
 							t = r/vv;
 							ind = (size_t)(t/dt);
-							for (size_t l = 0; l < times; ++l) {
+							size_t l = 0;
+							for (l = 0; l < times/4; ++l) {
+								if ((l+1)*4+ind < times) {
+									v4sf_addmov(area_discr.get()+i*nx*ny*times+j*ny*times+k*times+l*4, rec_times.get()+m*times+ind+l*4);
+								} else break;
+							}
+								std::cerr << times/4 << std::endl;
+							for (l = l*4; l < times; ++l) {
 								if (l+ind < times) {
 									area_discr[i*nx*ny*times+j*ny*times+k*times+l] += rec_times[m*times+ind+l];
 								} else break;
