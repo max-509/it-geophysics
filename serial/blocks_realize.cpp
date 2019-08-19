@@ -7,6 +7,9 @@
 #include <memory>
 #include <omp.h>
 
+//(15, 1000) - best variant
+
+//Laptop
 //Test times_rec_blocks, where pair-numbers - (rec_block_size, times_block_size)
 //r27-32 : (10, 10000); (10, 5000); (10, 2500); (10, 2000); (10, 1000); (10, 500);
 
@@ -15,14 +18,14 @@ inline float calc_radius(float dx, float dy, float dz) {
 }
 
 int main(int argc, char const *argv[]) {
-    omp_set_num_threads(4);
+    omp_set_num_threads(12);
     std::ifstream data_file, receivers_file;
-    data_file.open("/home/maksimych/test/it-geophysics/Data_noise_free.bin", std::ios::binary);
+    data_file.open("../Data_noise_free.bin", std::ios::binary);
     if (!data_file.is_open()) {
         std::cerr << "Can't open Data_noise_free.bin" << std::endl;
         return 1;
     }
-    receivers_file.open("/home/maksimych/test/it-geophysics/Receivers_Array.bin", std::ios::binary);
+    receivers_file.open("../Receivers_Array.bin", std::ios::binary);
     if (!receivers_file.is_open()) {
         std::cerr << "Can't open Receivers_Array.bin" << std::endl;
         return 1;
@@ -41,7 +44,7 @@ int main(int argc, char const *argv[]) {
 
     size_t nx = 10;
     size_t ny = 10;
-    size_t nz = 100;
+    size_t nz = 10;
 
     float vv = 3000;
 
@@ -78,7 +81,7 @@ int main(int argc, char const *argv[]) {
     	float x, y, z;
         float r, t, res;
         size_t ind;
-		#pragma omp for schedule(dynamic)
+		#pragma omp for schedule(dynamic) //collapse(2)
         for (size_t i = 0; i < nz; ++i) {
         	z = (z0+i*dz);
             for (size_t c_r = 0; c_r < rec_count; c_r += rec_block_size) {
@@ -103,34 +106,36 @@ int main(int argc, char const *argv[]) {
             }
         }
     }
+    //#pragma omp collapse с выносом цикла по x наверх
+    //распараллелить по c_r с использованием локальных массивов
     //******************************************************//
     t2 = omp_get_wtime();
 
-    // std::ifstream results_file;
-	// results_file.open("../Summation_Results2.bin", std::ios::binary);
-	// if (!results_file.is_open()) {
-	// 	std::cerr << "Can't open Summation_Results.bin" << std::endl;
-	// 	return 1;
-	// }
+    std::ifstream results_file;
+	results_file.open("../Summation_Results2.bin", std::ios::binary);
+	if (!results_file.is_open()) {
+		std::cerr << "Can't open Summation_Results.bin" << std::endl;
+		return 1;
+	}
 
-	// std::unique_ptr<float[]> real_results{new float[nx*ny*nz*times]};
-	// results_file.read(reinterpret_cast<char*>(real_results.get()), nx*ny*nz*times*sizeof(float));
+	std::unique_ptr<float[]> real_results{new float[nx*ny*nz*times]};
+	results_file.read(reinterpret_cast<char*>(real_results.get()), nx*ny*nz*times*sizeof(float));
 
-	// float result = 0;
-	// float temp1 = 0, temp2 = 0;
-	// for (size_t i = 0; i < nz; ++i) {
-	// 	for (size_t j = 0; j < nx; ++j) {
-	// 		for (size_t k = 0; k < ny; ++k) {
-	// 			for (size_t l = 0; l < times; ++l) {
-	// 				temp1 += (real_results[i*nx*ny*times+j*ny*times+k*times+l]-area_discr[i*nx*ny*times+j*ny*times+k*times+l])*
-	// 						 (real_results[i*nx*ny*times+j*ny*times+k*times+l]-area_discr[i*nx*ny*times+j*ny*times+k*times+l]);
-	// 				// std::cout << real_results[i*nx*ny*times+j*ny*times+k*times+l] << " " << area_discr[i*nx*ny*times+j*ny*times+k*times+l] << std::endl;
-	// 				temp2 += real_results[i*nx*ny*times+j*ny*times+k*times+l]*real_results[i*nx*ny*times+j*ny*times+k*times+l];
-	// 			}
-	// 		}
-	// 	}
-	// }
-	// result = sqrt(temp1)/sqrt(temp2);
+	float result = 0;
+	float temp1 = 0, temp2 = 0;
+	for (size_t i = 0; i < nz; ++i) {
+		for (size_t j = 0; j < nx; ++j) {
+			for (size_t k = 0; k < ny; ++k) {
+				for (size_t l = 0; l < times; ++l) {
+					temp1 += (real_results[i*nx*ny*times+j*ny*times+k*times+l]-area_discr[i*nx*ny*times+j*ny*times+k*times+l])*
+							 (real_results[i*nx*ny*times+j*ny*times+k*times+l]-area_discr[i*nx*ny*times+j*ny*times+k*times+l]);
+					// std::cout << real_results[i*nx*ny*times+j*ny*times+k*times+l] << " " << area_discr[i*nx*ny*times+j*ny*times+k*times+l] << std::endl;
+					temp2 += real_results[i*nx*ny*times+j*ny*times+k*times+l]*real_results[i*nx*ny*times+j*ny*times+k*times+l];
+				}
+			}
+		}
+	}
+	result = sqrt(temp1)/sqrt(temp2);
 
     std::ofstream time_file;
     time_file.open("./time_file", std::ios::out | std::ios::app);
@@ -142,7 +147,7 @@ int main(int argc, char const *argv[]) {
         << ", Times blocks realize: " << times_block_size << ", Time: " << t2-t1 << std::endl;
     }
 
-    // std::cout << "Result == " << result << std::endl;
+    std::cout << "Result == " << result << std::endl;
 
     return 0;
 }

@@ -13,7 +13,7 @@ float calc_radius(float dx, float dy, float dz) {
 }
 
 int main(int argc, char const *argv[]) {
-	omp_set_num_threads(4);
+	omp_set_num_threads(12);
 
 	std::ifstream data_file, receivers_file;
 	data_file.open("../Data_noise_free.bin", std::ios::binary);
@@ -97,29 +97,14 @@ int main(int argc, char const *argv[]) {
 			for (size_t k = 0; k < ny; ++k) {
 				for (size_t l = 0; l < times; ++l) {
 					res = 0;
-					if (isFirstSource) {
-						for (size_t m = 0; m < rec_count; ++m) {
-							r = calc_radius((x0+j*dx)-rec_coords[m*3],
-										    (y0+k*dy)-rec_coords[m*3+1],
-										    (z0+i*dz)-rec_coords[m*3+2]);
-							t = r/vv;
-							file_times_to_receivers.write(reinterpret_cast<char*>(&t), 4);
-							ind = (size_t)(t/dt);
-							if (l+ind < times) {
-								res += rec_times[m*times+ind+l];
-							}
-						}
-						isFirstSource = false;
-					} else {
-						for (size_t m = 0; m < rec_count; ++m) {
-							r = calc_radius((x0+j*dx)-rec_coords[m*3],
-										    (y0+k*dy)-rec_coords[m*3+1],
-										    (z0+i*dz)-rec_coords[m*3+2]);
-							t = r/vv;
-							ind = (size_t)(t/dt);
-							if (l+ind < times) {
-								res += rec_times[m*times+ind+l];
-							}
+					for (size_t m = 0; m < rec_count; ++m) {
+						r = calc_radius((x0+j*dx)-rec_coords[m*3],
+									    (y0+k*dy)-rec_coords[m*3+1],
+									    (z0+i*dz)-rec_coords[m*3+2]);
+						t = r/vv;
+						ind = (size_t)(t/dt);
+						if (l+ind < times) {
+							res += rec_times[m*times+ind+l];
 						}
 					}
 					area_discr[i*nx*ny*times+j*ny*times+k*times+l] = res;
