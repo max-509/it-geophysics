@@ -6,6 +6,8 @@
 #include <memory>
 #include <omp.h>
 
+//command compilation: g++ -O3 -mavx <source.cpp> -fopenmp -std=c++11
+
 float calc_radius(float dx, float dy, float dz) {
 	return sqrt(dx*dx+dy*dy+dz*dz);
 }
@@ -79,19 +81,36 @@ int main(int argc, char const *argv[]) {
 
 	double t1, t2;
 
+	std::ofstream file_times_to_receivers;
+	file_times_to_receivers.open("./TimesToReceivers.bin", std::ios::binary | std::ios::out);
 	t1 = omp_get_wtime();
 	//algorithm
 	//******************************************************//
-	#pragma omp parallel
-	{
-		float r, t, res;
-		size_t ind;
-		#pragma omp for schedule(guided)
-		for (size_t i = 0; i < nz; ++i) {
-			for (size_t j = 0; j < nx; ++j) {
-				for (size_t k = 0; k < ny; ++k) {
-					for (size_t l = 0; l < times; ++l) {
-						res = 0;
+	// #pragma omp parallel
+	// {
+	bool isFirstSource = true;
+	float r, t, res;
+	size_t ind;
+	// #pragma omp for schedule(guided)
+	for (size_t i = 0; i < nz; ++i) {
+		for (size_t j = 0; j < nx; ++j) {
+			for (size_t k = 0; k < ny; ++k) {
+				for (size_t l = 0; l < times; ++l) {
+					res = 0;
+					if (isFirstSource) {
+						for (size_t m = 0; m < rec_count; ++m) {
+							r = calc_radius((x0+j*dx)-rec_coords[m*3],
+										    (y0+k*dy)-rec_coords[m*3+1],
+										    (z0+i*dz)-rec_coords[m*3+2]);
+							t = r/vv;
+							file_times_to_receivers.write(reinterpret_cast<char*>(&t), 4);
+							ind = (size_t)(t/dt);
+							if (l+ind < times) {
+								res += rec_times[m*times+ind+l];
+							}
+						}
+						isFirstSource = false;
+					} else {
 						for (size_t m = 0; m < rec_count; ++m) {
 							r = calc_radius((x0+j*dx)-rec_coords[m*3],
 										    (y0+k*dy)-rec_coords[m*3+1],
@@ -102,12 +121,13 @@ int main(int argc, char const *argv[]) {
 								res += rec_times[m*times+ind+l];
 							}
 						}
-						area_discr[i*nx*ny*times+j*ny*times+k*times+l] = res;
 					}
+					area_discr[i*nx*ny*times+j*ny*times+k*times+l] = res;
 				}
 			}
 		}
 	}
+	// }
 	//0) спросить про репозиторий 
 	//1) текущая версия с внешним циклом по times (сравнить)
 	//2) разбить на блоки по times
@@ -119,31 +139,31 @@ int main(int argc, char const *argv[]) {
 	//******************************************************//
 	t2 = omp_get_wtime();
 
-	// std::ifstream results_file;
-	// results_file.open("../Summation_Results.bin", std::ios::binary);
-	// if (!results_file.is_open()) {
-	// 	std::cerr << "Can't open Summation_Results.bin" << std::endl;
-	// 	return 1;
-	// }
+	std::ifstream results_file;
+	results_file.open("../Summation_Results2.bin", std::ios::binary);
+	if (!results_file.is_open()) {
+		std::cerr << "Can't open Summation_Results.bin" << std::endl;
+		return 1;
+	}
 
-	// std::unique_ptr<float[]> real_results{new float[nx*ny*nz*times]};
-	// results_file.read(reinterpret_cast<char*>(real_results.get()), nx*ny*nz*times*sizeof(float));
+	std::unique_ptr<float[]> real_results{new float[nx*ny*nz*times]};
+	results_file.read(reinterpret_cast<char*>(real_results.get()), nx*ny*nz*times*sizeof(float));
 
-	// float result = 0;
-	// float temp1 = 0, temp2 = 0;
-	// for (size_t i = 0; i < nz; ++i) {
-	// 	for (size_t j = 0; j < nx; ++j) {
-	// 		for (size_t k = 0; k < ny; ++k) {
-	// 			for (size_t l = 0; l < times; ++l) {
-	// 				temp1 += (real_results[i*nx*ny*times+j*ny*times+k*times+l]-area_discr[i*nx*ny*times+j*ny*times+k*times+l])*
-	// 						 (real_results[i*nx*ny*times+j*ny*times+k*times+l]-area_discr[i*nx*ny*times+j*ny*times+k*times+l]);
-	// 				std::cout << real_results[i*nx*ny*times+j*ny*times+k*times+l] << " " << area_discr[i*nx*ny*times+j*ny*times+k*times+l] << std::endl;
-	// 				temp2 += real_results[i*nx*ny*times+j*ny*times+k*times+l]*real_results[i*nx*ny*times+j*ny*times+k*times+l];
-	// 			}
-	// 		}
-	// 	}
-	// }
-	// result = sqrt(temp1)/sqrt(temp2);
+	float result = 0;
+	float temp1 = 0, temp2 = 0;
+	for (size_t i = 0; i < nz; ++i) {
+		for (size_t j = 0; j < nx; ++j) {
+			for (size_t k = 0; k < ny; ++k) {
+				for (size_t l = 0; l < times; ++l) {
+					temp1 += (real_results[i*nx*ny*times+j*ny*times+k*times+l]-area_discr[i*nx*ny*times+j*ny*times+k*times+l])*
+							 (real_results[i*nx*ny*times+j*ny*times+k*times+l]-area_discr[i*nx*ny*times+j*ny*times+k*times+l]);
+					// std::cout << real_results[i*nx*ny*times+j*ny*times+k*times+l] << " " << area_discr[i*nx*ny*times+j*ny*times+k*times+l] << std::endl;
+					temp2 += real_results[i*nx*ny*times+j*ny*times+k*times+l]*real_results[i*nx*ny*times+j*ny*times+k*times+l];
+				}
+			}
+		}
+	}
+	result = sqrt(temp1)/sqrt(temp2);
 
 	std::ofstream time_file;
 	time_file.open("./time_file", std::ios::out | std::ios::app);
@@ -153,7 +173,7 @@ int main(int argc, char const *argv[]) {
 		time_file << "Source" << ": Time: " << t2-t1 << std::endl;
 	}
 
-	// std::cout << "Result == " << result << std::endl;
+	std::cout << "Result == " << result << std::endl;
 
 	return 0;
 }
