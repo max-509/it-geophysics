@@ -88,7 +88,6 @@ int main(int argc, char const *argv[]) {
 	//******************************************************//
 	// #pragma omp parallel
 	// {
-	bool isFirstSource = true;
 	float r, t, res;
 	size_t ind;
 	// #pragma omp for schedule(guided)
