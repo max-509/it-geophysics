@@ -73,33 +73,39 @@ int main(int argc, char const *argv[]) {
 	std::unique_ptr<size_t[]> min_ind_arr{new size_t[nx*ny*nz]()};
 	#pragma omp parallel 
 	{
+		size_t ind, min_ind;
 		#pragma omp for schedule(dynamic)
 	    for (size_t i = 0; i < nz; ++i) {
 	        for (size_t c_r = 0; c_r < rec_count; c_r += rec_block_size) {
 		        for (size_t j = 0; j < nx; ++j) {
 		            for (size_t k = 0; k < ny; ++k) {
 		            	if (min_ind_arr[i*nx*ny+j*ny+k] == 0) {
+		            		min_ind_arr = round(calc_radius((x0+j*dx)-rec_coords[m*3],
+													  		(y0+k*dy)-rec_coords[m*3+1],
+													  		(z0+i*dz)-rec_coords[m*3+2])
+            																						/(vv*dt)) + 1;
 		            		for (size_t m = 0; m < rec_count; ++m) {
 		            			ind_arr[i*nx*ny*rec_count+j*ny*rec_count+k*rec_count+m] = round(calc_radius((x0+j*dx)-rec_coords[m*3],
 		            																				  		(y0+k*dy)-rec_coords[m*3+1],
 		            																				  		(z0+i*dz)-rec_coords[m*3+2])
 		            																						/(vv*dt)) + 1;
 		            			if (0 != m) {
-		            				min_ind_arr[i*nx*ny+j*ny+k] = std::min(min_ind_arr[i*nx*ny+j*nx+k], 
+		            				min_ind_arr[i*nx*ny+j*ny+k] = std::min(min_ind_arr[i*nx*ny+j*ny+k], 
 		            											  		   ind_arr[i*nx*ny*rec_count+j*ny*rec_count+k*rec_count+m]); 
 		            			} else {
 		            				min_ind_arr[i*nx*ny+j*ny+k] = ind_arr[i*nx*ny*rec_count+j*ny*rec_count+k*rec_count+m];
 		            			}
 		            		}
 		            	}
+		            	min_ind = min_ind_arr[i*nx*ny+j*ny+k]; 
 		                for (size_t m = c_r; m < std::min(c_r+rec_block_size, rec_count); ++m) {
-		                    for (size_t l = 0; l < times-ind_arr[i*nx*ny*rec_count+j*ny*rec_count+k*rec_count+m]+min_ind_arr[i*nx*ny+j*ny+k]; ++l) {
+		                	ind = ind_arr[i*nx*ny*rec_count+j*ny*rec_count+k*rec_count+m] - min_ind;
+		                    for (size_t l = 0; l < times-ind; ++l) {
 		                    	// for (size_t m = 0; m < rec_count; ++m) {
 		                    	// 	std::cout << rec_times[m*times+ind_arr[m]+l-min_ind] << std::endl;
 		                    	// }
 		                    	// return 0;
-		                        area_discr[i*nx*ny*times+j*ny*times+k*times+l] += rec_times[m*times+ind_arr[i*nx*ny*rec_count+j*ny*rec_count+k*rec_count+m]
-		                        															+l-min_ind_arr[i*nx*ny+j*ny+k]];
+		                        area_discr[i*nx*ny*times+j*ny*times+k*times+l] += rec_times[m*times+ind+l];
 		                    }
 		                }
 		            }

@@ -42,7 +42,7 @@ int main(int argc, char const *argv[]) {
 
     float dt = 2e-3;
 
-    size_t nx = 100;
+    size_t nx = 10;
     size_t ny = 10;
     size_t nz = 100;
 
@@ -73,17 +73,18 @@ int main(int argc, char const *argv[]) {
         times_block_size = atoi(argv[2]);
     }
 
-    std::unique_ptr<size_t[]> ind_arr{new size_t[nx*ny*nz*rec_count]()};
-    std::unique_ptr<size_t[]> min_ind_arr{new size_t[nx*ny*nz]()};
     t1 = omp_get_wtime();
     //algorithm
     //******************************************************//
     #pragma omp parallel
     {
+    	std::unique_ptr<float[]> temp_area_discr{new float[nx*ny*nz*times]};
+    	std::unique_ptr<size_t[]> min_ind_arr{new size_t[nx*ny*nz]()};
+    	std::unique_ptr<size_t[]> ind_arr{new size_t[nx*ny*nz*rec_count]()};
         #pragma omp for schedule(dynamic)
-        for (size_t i = 0; i < nz; ++i) {
-            for (size_t c_r = 0; c_r < rec_count; c_r += rec_block_size) {
-                for (size_t c_t = 0; c_t < times; c_t += times_block_size) {
+        for (size_t c_r = 0; c_r < rec_count; c_r += rec_block_size) {
+        	for (size_t c_t = 0; c_t < times; c_t += times_block_size) {
+        		for (size_t i = 0; i < nz; ++i) {
                     for (size_t j = 0; j < nx; ++j) {
                         for (size_t k = 0; k < ny; ++k) {
                             if (min_ind_arr[i*nx*ny+j*ny+k] == 0) {
@@ -108,7 +109,7 @@ int main(int argc, char const *argv[]) {
                                     //  std::cout << rec_times[m*times+ind_arr[m]+l-min_ind] << std::endl;
                                     // }
                                     // return 0;
-                                    area_discr[i*nx*ny*times+j*ny*times+k*times+l] += rec_times[m*times+ind+l];
+                                    temp_area_discr[i*nx*ny*times+j*ny*times+k*times+l] += rec_times[m*times+ind+l];
                                 }
                             }
                         }
@@ -116,6 +117,10 @@ int main(int argc, char const *argv[]) {
                 }
             }
         }
+	    for (size_t i = 0; i < nx*ny*nz*times; ++i) {
+	    	#pragma omp reduction(+:area_discr[i])
+	    	area_discr[i] += temp_area_discr[i];
+	    }
     }
     //#pragma omp collapse с выносом цикла по x наверх
     //распараллелить по c_r с использованием локальных массивов
