@@ -6,6 +6,7 @@
 #include <cstdlib>
 #include <memory>
 #include <omp.h>
+#include <immintrin.h>
 
 //(15, 1000) - best variant
 
@@ -18,8 +19,11 @@ inline float calc_radius(float dx, float dy, float dz) {
     return sqrt(dx*dx+dy*dy+dz*dz);
 }
 
+inline __m256 vect_calc_radius(__m256 dx, __m256 dy, __m256 dz) {
+    return _mm256_sqrt_ps(_mm256_add_ps(_mm256_add_ps(_mm256_mul_ps(dx, dx), _mm256_mul_ps(dy, dy)), _mm256_mul_ps(dz, dz)));
+}
+
 int main(int argc, char const *argv[]) {
-    omp_set_num_threads(1);
     std::ifstream data_file, receivers_file;
     data_file.open("../Data_noise_free.bin", std::ios::binary);
     if (!data_file.is_open()) {
@@ -43,9 +47,9 @@ int main(int argc, char const *argv[]) {
 
     float dt = 2e-3;
 
-    size_t nx = 10;
-    size_t ny = 10;
-    size_t nz = 10;
+    size_t nx = 50;
+    size_t ny = 50;
+    size_t nz = 50;
 
     float vv = 3000;
 
@@ -76,27 +80,59 @@ int main(int argc, char const *argv[]) {
 
     std::unique_ptr<size_t[]> min_ind_arr{new size_t[nx*ny*nz]()};
     std::unique_ptr<size_t[]> ind_arr{new size_t[nx*ny*nz*rec_count]()};
-
+    __m256 vect_rec_coord[(rec_count/8)*3];
     t1 = omp_get_wtime();
     //algorithm
     //******************************************************//
     #pragma omp parallel
     {
+        if (rec_count >= 8) {
+            #pragma omp for collapse(2)
+            for (size_t m = 0; m < rec_count; m+=8) {
+                for (size_t i = 0; i < 3; ++i) {
+                    vect_rec_coord[(m/8)*3+i] = _mm256_set_ps(rec_coords[(m+7)*3+i], rec_coords[(m+6)*3+i], rec_coords[(m+5)*3+i], rec_coords[(m+4)*3+i],
+                                                              rec_coords[(m+3)*3+i], rec_coords[(m+2)*3+i], rec_coords[(m+1)*3+i], rec_coords[m*3+i]);
+                }
+            }
+        }
         #pragma omp for collapse(4)
         for (size_t i = 0; i < nz; ++i) {
             for (size_t j = 0; j < nx; ++j) {
                 for (size_t k = 0; k < ny; ++k) {
-                    for (size_t m = 0; m < rec_count; ++m) {
-                        ind_arr[i*nx*ny*rec_count+j*ny*rec_count+k*rec_count+m] = round(calc_radius((x0+j*dx)-rec_coords[m*3],
-                                                                                                    (y0+k*dy)-rec_coords[m*3+1],
-                                                                                                    (z0+i*dz)-rec_coords[m*3+2])
-                                                                                                    /(vv*dt)) + 1;
-                        if (0 != m) {
-                            min_ind_arr[i*nx*ny+j*ny+k] = std::min(min_ind_arr[i*nx*ny+j*ny+k],
-                                                                   ind_arr[i*nx*ny*rec_count+j*ny*rec_count+k*rec_count+m]);
+                    for (size_t m = 0; m < rec_count; m+=8) {
+                        if (m != rec_count-(rec_count%8)) {
+                            __m256 vect_ind = _mm256_add_ps(_mm256_set1_ps(1.0f),
+                                                            _mm256_round_ps(_mm256_div_ps(vect_calc_radius(
+                                                            _mm256_sub_ps(_mm256_set1_ps(x0+j*dx), vect_rec_coord[(m/8)*3]),
+                                                            _mm256_sub_ps(_mm256_set1_ps(y0+k*dy), vect_rec_coord[(m/8)*3+1]),
+                                                            _mm256_sub_ps(_mm256_set1_ps(z0+i*dz), vect_rec_coord[(m/8)*3+2])),
+                                                            _mm256_mul_ps(_mm256_set1_ps(vv), _mm256_set1_ps(dt))), (_MM_FROUND_TO_NEAREST_INT |_MM_FROUND_NO_EXC)));
+                            float temp_ind[8];
+                            _mm256_store_ps(temp_ind, vect_ind);
+                            for (size_t v = 0; v < 8; ++v) {
+                                ind_arr[i*nx*ny*rec_count+j*ny*rec_count+k*rec_count+m+v] = temp_ind[v];
+                                if (m != 0 || v != 0) {
+                                    min_ind_arr[i*nx*ny+j*ny+k] = std::min(min_ind_arr[i*nx*ny+j*ny+k],
+                                                                       ind_arr[i*nx*ny*rec_count+j*ny*rec_count+k*rec_count+m+v]);
+                                } else {
+                                    min_ind_arr[i*nx*ny+j*ny+k] = ind_arr[i*nx*ny*rec_count+j*ny*rec_count+k*rec_count];    
+                                }
+                            }
                         } else {
-                            min_ind_arr[i*nx*ny+j*ny+k] = ind_arr[i*nx*ny*rec_count+j*ny*rec_count+k*rec_count];
+                            for (size_t n_m = m; n_m < rec_count; ++n_m) {
+                                ind_arr[i*nx*ny*rec_count+j*ny*rec_count+k*rec_count+n_m] = round(calc_radius((x0+j*dx)-rec_coords[n_m*3],
+                                                                                                    (y0+k*dy)-rec_coords[n_m*3+1],
+                                                                                                    (z0+i*dz)-rec_coords[n_m*3+2])
+                                                                                                    /(vv*dt)) + 1;
+                                if (0 != m) {
+                                    min_ind_arr[i*nx*ny+j*ny+k] = std::min(min_ind_arr[i*nx*ny+j*ny+k],
+                                                                           ind_arr[i*nx*ny*rec_count+j*ny*rec_count+k*rec_count+n_m]);
+                                } else {
+                                    min_ind_arr[i*nx*ny+j*ny+k] = ind_arr[i*nx*ny*rec_count+j*ny*rec_count+k*rec_count];
+                                }        
+                            }   
                         }
+
                     }
                 }
             }
@@ -148,26 +184,17 @@ int main(int argc, char const *argv[]) {
     //             for (size_t l = 0; l < times; ++l) {
     //                 temp1 += (real_results[i*nx*ny*times+j*ny*times+k*times+l]-area_discr[i*nx*ny*times+j*ny*times+k*times+l])*
     //                          (real_results[i*nx*ny*times+j*ny*times+k*times+l]-area_discr[i*nx*ny*times+j*ny*times+k*times+l]);
-    //                 std::cout << real_results[i*nx*ny*times+j*ny*times+k*times+l] << " " << area_discr[i*nx*ny*times+j*ny*times+k*times+l] << std::endl;
+    //                 // std::cout << real_results[i*nx*ny*times+j*ny*times+k*times+l] << " " << area_discr[i*nx*ny*times+j*ny*times+k*times+l] << std::endl;
     //                 temp2 += real_results[i*nx*ny*times+j*ny*times+k*times+l]*real_results[i*nx*ny*times+j*ny*times+k*times+l];
     //             }
     //         }
-    //         return 1;
     //     }
     // }
     // result = sqrt(temp1)/sqrt(temp2);
 
-    // std::ofstream time_file;
-    // time_file.open("./time_file", std::ios::out | std::ios::app);
-    // if (!time_file.is_open()) {
-    //     std::cout << "Rec block size: " << rec_block_size << ", Times block size: "
-    //     << times_block_size << ", Time: " << t2-t1 << std::endl;
-    // } else {
-    //     time_file << "Blocks realize" << ": Rec block size: " << rec_block_size
-    //     << ", Times blocks realize: " << times_block_size << ", Time: " << t2-t1 << std::endl;
-    // }
-
     // std::cout << "Result == " << result << std::endl;
+
+    std::cout << "Time: " << t2-t1 << std::endl;
 
     return 0;
 }

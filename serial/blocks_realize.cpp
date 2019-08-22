@@ -6,6 +6,7 @@
 #include <cstdlib>
 #include <memory>
 #include <omp.h>
+#include <exception>
 
 //356 396
 
@@ -20,7 +21,6 @@ inline float calc_radius(float dx, float dy, float dz) {
 }
 
 int main(int argc, char const *argv[]) {
-    omp_set_num_threads(1);
     std::ifstream data_file, receivers_file;
     data_file.open("../Data_noise_free.bin", std::ios::binary);
     if (!data_file.is_open()) {
@@ -44,9 +44,9 @@ int main(int argc, char const *argv[]) {
 
     float dt = 2e-3;
 
-    size_t nx = 10;
-    size_t ny = 10;
-    size_t nz = 10;
+    size_t nx = 50;
+    size_t ny = 50;
+    size_t nz = 50;
 
     float vv = 3000;
 
@@ -82,17 +82,25 @@ int main(int argc, char const *argv[]) {
      	return 1;
     }
 
-    std::unique_ptr<float[]> real_results{new float[nx*ny*nz*times]};
+    std::unique_ptr<float[]> real_results;
+    std::unique_ptr<size_t[]> ind_arr;
+    std::unique_ptr<size_t[]> min_ind_arr;
+    try {
+	    real_results = std::move(std::unique_ptr<float[]>{new float[nx*ny*nz*times]});
+	    ind_arr = std::move(std::unique_ptr<size_t[]>{new size_t[nx*ny*nz*rec_count]});
+	    min_ind_arr = std::move(std::unique_ptr<size_t[]>{new size_t[nx*ny*nz]});
+	} catch(std::exception& ex) {
+		std::cout << ex.what() << std::endl;
+		exit(1);
+	}
     results_file.read(reinterpret_cast<char*>(real_results.get()), nx*ny*nz*times*sizeof(float));
 
-    std::unique_ptr<size_t[]> ind_arr{new size_t[nx*ny*nz*rec_count]()};
-    std::unique_ptr<size_t[]> min_ind_arr{new size_t[nx*ny*nz]()};
     t1 = omp_get_wtime();
     //algorithm
     //******************************************************//
     #pragma omp parallel
     {
-        #pragma omp for schedule(dynamic)
+        #pragma omp for
         for (size_t i = 0; i < nz; ++i) {
             for (size_t c_r = 0; c_r < rec_count; c_r += rec_block_size) {
                 for (size_t c_t = 0; c_t < times; c_t += times_block_size) {
@@ -114,28 +122,13 @@ int main(int argc, char const *argv[]) {
                                 }
                             }
                             size_t min_ind = min_ind_arr[i*nx*ny+j*ny+k];
-                            // for (size_t l = c_t; l < std::min(c_t+times_block_size, times); ++l) {
-                            //     for (size_t m = c_r; m < std::min(c_r+rec_block_size, rec_count); ++m) {
-                            //         size_t ind = ind_arr[i*nx*ny*rec_count+j*ny*rec_count+k*rec_count+m]-min_ind;    
-                            //         if (l+ind < times) {
-                            //             area_discr[i*nx*ny*times+j*ny*times+k*times+l] += rec_times[m*times+ind+l];
-                            //         }
-                            //         std::cout << res << " " << real_results[i*nx*ny*times+j*ny*times+k*times+l] << " " << m << " " << l << std::endl;
-                            //     }
-                            // }
                             for (size_t m = c_r; m < std::min(c_r+rec_block_size, rec_count); ++m) {
                                 size_t ind = ind_arr[i*nx*ny*rec_count+j*ny*rec_count+k*rec_count+m]-min_ind;
-                                // std::cout << min_ind << " " << ind_arr[i*nx*ny*rec_count+j*ny*rec_count+k*rec_count+m] << std::endl;
-                                // exit(0);
                                 for (size_t l = c_t; l < std::min(c_t+times_block_size, times-ind); ++l) {
-                                    // for (size_t m = 0; m < rec_count; ++m) {
-                                    //  std::cout << rec_times[m*times+ind_arr[m]+l-min_ind] << std::endl;
-                                    // }
-                                    // return 0;
+
                                     area_discr[i*nx*ny*times+j*ny*times+k*times+l] += rec_times[m*times+ind+l];
                                 }
                             }
-                			// std::cout << real_results[i*nx*ny*times+j*ny*times+k*times] << " " << area_discr[i*nx*ny*times+j*ny*times+k*times] << std::endl;
                         }
                     }
                 }
@@ -164,17 +157,9 @@ int main(int argc, char const *argv[]) {
     // }
     // result = sqrt(temp1)/sqrt(temp2);
 
-    // std::ofstream time_file;
-    // time_file.open("./time_file", std::ios::out | std::ios::app);
-    // if (!time_file.is_open()) {
-    //     std::cout << "Rec block size: " << rec_block_size << ", Times block size: "
-    //     << times_block_size << ", Time: " << t2-t1 << std::endl;
-    // } else {
-    //     time_file << "Blocks realize" << ": Rec block size: " << rec_block_size
-    //     << ", Times blocks realize: " << times_block_size << ", Time: " << t2-t1 << std::endl;
-    // }
-
     // std::cout << "Result == " << result << std::endl;
 
+    std::cout << "Time: " << t2-t1 << std::endl;
+ 
     return 0;
 }
