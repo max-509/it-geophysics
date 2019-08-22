@@ -7,7 +7,7 @@
 #include <memory>
 #include <omp.h>
 
-//160.481 160.332
+//356 396
 
 //(15, 1000) - best variant
 
@@ -120,6 +120,7 @@ int main(int argc, char const *argv[]) {
                             //         if (l+ind < times) {
                             //             area_discr[i*nx*ny*times+j*ny*times+k*times+l] += rec_times[m*times+ind+l];
                             //         }
+                            //         std::cout << res << " " << real_results[i*nx*ny*times+j*ny*times+k*times+l] << " " << m << " " << l << std::endl;
                             //     }
                             // }
                             for (size_t m = c_r; m < std::min(c_r+rec_block_size, rec_count); ++m) {
@@ -146,22 +147,22 @@ int main(int argc, char const *argv[]) {
     //******************************************************//
     t2 = omp_get_wtime();
 
-    float result = 0;
-    float temp1 = 0, temp2 = 0;
-    for (size_t i = 0; i < nz; ++i) {
-     	for (size_t j = 0; j < nx; ++j) {
-        	for (size_t k = 0; k < ny; ++k) {
-            	for (size_t l = 0; l < times; ++l) {
-                	temp1 += (real_results[i*nx*ny*times+j*ny*times+k*times+l]-area_discr[i*nx*ny*times+j*ny*times+k*times+l])*
-                    	     (real_results[i*nx*ny*times+j*ny*times+k*times+l]-area_discr[i*nx*ny*times+j*ny*times+k*times+l]);
-                	std::cout << real_results[i*nx*ny*times+j*ny*times+k*times+l] << " " << area_discr[i*nx*ny*times+j*ny*times+k*times+l] << std::endl;
-                 	temp2 += real_results[i*nx*ny*times+j*ny*times+k*times+l]*real_results[i*nx*ny*times+j*ny*times+k*times+l];
-            	}
-        	}
-        	return 1;
-     	}
-    }
-    result = sqrt(temp1)/sqrt(temp2);
+    // float result = 0;
+    // float temp1 = 0, temp2 = 0;
+    // for (size_t i = 0; i < nz; ++i) {
+    //  	for (size_t j = 0; j < nx; ++j) {
+    //     	for (size_t k = 0; k < ny; ++k) {
+    //         	for (size_t l = 0; l < times; ++l) {
+    //             	temp1 += (real_results[i*nx*ny*times+j*ny*times+k*times+l]-area_discr[i*nx*ny*times+j*ny*times+k*times+l])*
+    //                 	     (real_results[i*nx*ny*times+j*ny*times+k*times+l]-area_discr[i*nx*ny*times+j*ny*times+k*times+l]);
+    //             	std::cout << real_results[i*nx*ny*times+j*ny*times+k*times+l] << " " << area_discr[i*nx*ny*times+j*ny*times+k*times+l] << std::endl;
+    //              	temp2 += real_results[i*nx*ny*times+j*ny*times+k*times+l]*real_results[i*nx*ny*times+j*ny*times+k*times+l];
+    //         	}
+    //     	}
+    //     	return 1;
+    //  	}
+    // }
+    // result = sqrt(temp1)/sqrt(temp2);
 
     // std::ofstream time_file;
     // time_file.open("./time_file", std::ios::out | std::ios::app);
