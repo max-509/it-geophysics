@@ -80,10 +80,6 @@ int main(int argc, char const *argv[]) {
 		        for (size_t j = 0; j < nx; ++j) {
 		            for (size_t k = 0; k < ny; ++k) {
 		            	if (min_ind_arr[i*nx*ny+j*ny+k] == 0) {
-		            		min_ind_arr = round(calc_radius((x0+j*dx)-rec_coords[m*3],
-													  		(y0+k*dy)-rec_coords[m*3+1],
-													  		(z0+i*dz)-rec_coords[m*3+2])
-            																						/(vv*dt)) + 1;
 		            		for (size_t m = 0; m < rec_count; ++m) {
 		            			ind_arr[i*nx*ny*rec_count+j*ny*rec_count+k*rec_count+m] = round(calc_radius((x0+j*dx)-rec_coords[m*3],
 		            																				  		(y0+k*dy)-rec_coords[m*3+1],

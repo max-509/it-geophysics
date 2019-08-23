@@ -6,7 +6,7 @@
 #include <memory>
 #include <omp.h>
 
-//command compilation: g++ -O3 -mavx <source.cpp> -fopenmp -std=c++11
+//command compilation: g++ -O3 -mavx <source.cpp> -fopenmp -std=c++11 -g
 
 float calc_radius(float dx, float dy, float dz) {
 	return sqrt(dx*dx+dy*dy+dz*dz);

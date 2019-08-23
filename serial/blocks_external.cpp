@@ -10,11 +10,6 @@
 
 //(15, 1000) - best variant
 
-//Laptop
-//Test times_rec_blocks, where pair-numbers - (rec_block_size, times_block_size)
-//r27-32 : (10, 10000); (10, 5000); (10, 2500); (10, 2000); (10, 1000); (10, 500);
-//TODO: не забыть попробовать векторизовать цикл для приемников
-
 inline float calc_radius(float dx, float dy, float dz) {
     return sqrt(dx*dx+dy*dy+dz*dz);
 }
@@ -47,9 +42,9 @@ int main(int argc, char const *argv[]) {
 
     float dt = 2e-3;
 
-    size_t nx = 50;
-    size_t ny = 50;
-    size_t nz = 50;
+    size_t nx = 30;
+    size_t ny = 30;
+    size_t nz = 30;
 
     float vv = 3000;
 
@@ -95,12 +90,13 @@ int main(int argc, char const *argv[]) {
                 }
             }
         }
+
         #pragma omp for collapse(4)
         for (size_t i = 0; i < nz; ++i) {
             for (size_t j = 0; j < nx; ++j) {
                 for (size_t k = 0; k < ny; ++k) {
                     for (size_t m = 0; m < rec_count; m+=8) {
-                        if (m != rec_count-(rec_count%8)) {
+                        if (m != rec_count - (rec_count%8)) {
                             __m256 vect_ind = _mm256_add_ps(_mm256_set1_ps(1.0f),
                                                             _mm256_round_ps(_mm256_div_ps(vect_calc_radius(
                                                             _mm256_sub_ps(_mm256_set1_ps(x0+j*dx), vect_rec_coord[(m/8)*3]),

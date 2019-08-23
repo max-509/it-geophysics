@@ -44,9 +44,9 @@ int main(int argc, char const *argv[]) {
 
     float dt = 2e-3;
 
-    size_t nx = 50;
-    size_t ny = 50;
-    size_t nz = 50;
+    size_t nx = 30;
+    size_t ny = 30;
+    size_t nz = 30;
 
     float vv = 3000;
 
