@@ -42,9 +42,9 @@ int main(int argc, char const *argv[]) {
 
     float dt = 2e-3;
 
-    size_t nx = 30;
-    size_t ny = 30;
-    size_t nz = 30;
+    size_t nx = 50;
+    size_t ny = 50;
+    size_t nz = 50;
 
     float vv = 3000;
 
@@ -89,55 +89,73 @@ int main(int argc, char const *argv[]) {
                                                               rec_coords[(m+3)*3+i], rec_coords[(m+2)*3+i], rec_coords[(m+1)*3+i], rec_coords[m*3+i]);
                 }
             }
-        }
-
-        #pragma omp for collapse(4)
-        for (size_t i = 0; i < nz; ++i) {
-            for (size_t j = 0; j < nx; ++j) {
-                for (size_t k = 0; k < ny; ++k) {
-                    for (size_t m = 0; m < rec_count; m+=8) {
-                        if (m != rec_count - (rec_count%8)) {
+            __m256 vect_ind_min;
+            #pragma omp for collapse(3)
+            for (size_t i = 0; i < nz; ++i) {
+                for (size_t j = 0; j < nx; ++j) {
+                    for (size_t k = 0; k < ny; ++k) {
+                        for (size_t m = 0; m < rec_count; m+=8) {
                             __m256 vect_ind = _mm256_add_ps(_mm256_set1_ps(1.0f),
                                                             _mm256_round_ps(_mm256_div_ps(vect_calc_radius(
                                                             _mm256_sub_ps(_mm256_set1_ps(x0+j*dx), vect_rec_coord[(m/8)*3]),
                                                             _mm256_sub_ps(_mm256_set1_ps(y0+k*dy), vect_rec_coord[(m/8)*3+1]),
                                                             _mm256_sub_ps(_mm256_set1_ps(z0+i*dz), vect_rec_coord[(m/8)*3+2])),
                                                             _mm256_mul_ps(_mm256_set1_ps(vv), _mm256_set1_ps(dt))), (_MM_FROUND_TO_NEAREST_INT |_MM_FROUND_NO_EXC)));
+                            if (0 != m) {
+                                vect_ind_min = _mm256_min_ps(vect_ind_min, vect_ind);
+                            } else {
+                                vect_ind_min = vect_ind;
+                            }
                             float temp_ind[8];
                             _mm256_store_ps(temp_ind, vect_ind);
                             for (size_t v = 0; v < 8; ++v) {
                                 ind_arr[i*nx*ny*rec_count+j*ny*rec_count+k*rec_count+m+v] = temp_ind[v];
-                                if (m != 0 || v != 0) {
-                                    min_ind_arr[i*nx*ny+j*ny+k] = std::min(min_ind_arr[i*nx*ny+j*ny+k],
-                                                                       ind_arr[i*nx*ny*rec_count+j*ny*rec_count+k*rec_count+m+v]);
-                                } else {
-                                    min_ind_arr[i*nx*ny+j*ny+k] = ind_arr[i*nx*ny*rec_count+j*ny*rec_count+k*rec_count];    
-                                }
                             }
-                        } else {
-                            for (size_t n_m = m; n_m < rec_count; ++n_m) {
-                                ind_arr[i*nx*ny*rec_count+j*ny*rec_count+k*rec_count+n_m] = round(calc_radius((x0+j*dx)-rec_coords[n_m*3],
-                                                                                                    (y0+k*dy)-rec_coords[n_m*3+1],
-                                                                                                    (z0+i*dz)-rec_coords[n_m*3+2])
-                                                                                                    /(vv*dt)) + 1;
-                                if (0 != m) {
-                                    min_ind_arr[i*nx*ny+j*ny+k] = std::min(min_ind_arr[i*nx*ny+j*ny+k],
-                                                                           ind_arr[i*nx*ny*rec_count+j*ny*rec_count+k*rec_count+n_m]);
-                                } else {
-                                    min_ind_arr[i*nx*ny+j*ny+k] = ind_arr[i*nx*ny*rec_count+j*ny*rec_count+k*rec_count];
-                                }        
-                            }   
                         }
 
+                        float min_indexes[8];
+                        _mm256_store_ps(min_indexes, vect_ind_min);
+                        min_ind_arr[i*nx*ny+j*ny+k] = *std::min_element(min_indexes, min_indexes+8);
+
+                        for (size_t m = rec_count-(rec_count%8); m < rec_count; ++m) {
+                            ind_arr[i*nx*ny*rec_count+j*ny*rec_count+k*rec_count+m] = round(calc_radius((x0+j*dx)-rec_coords[m*3],
+                                                                                                        (y0+k*dy)-rec_coords[m*3+1],
+                                                                                                        (z0+i*dz)-rec_coords[m*3+2])
+                                                                                                        /(vv*dt)) + 1;
+                            min_ind_arr[i*nx*ny+j*ny+k] = std::min(min_ind_arr[i*nx*ny+j*ny+k],
+                                                                   ind_arr[i*nx*ny*rec_count+j*ny*rec_count+k*rec_count+m]);
+                        }
+                    }
+                }
+            }
+        } else {
+            #pragma omp for collapse(3)
+            for (size_t i = 0; i < nz; ++i) {
+                for (size_t j = 0; j < nx; ++j) {
+                    for (size_t k = 0; k < ny; ++k) {
+                        ind_arr[i*nx*ny*rec_count+j*ny*rec_count+k*rec_count] = round(calc_radius((x0+j*dx)-rec_coords[0],
+                                                                                                  (y0+k*dy)-rec_coords[1],
+                                                                                                  (z0+i*dz)-rec_coords[2])
+                                                                                                  /(vv*dt)) + 1;
+                        min_ind_arr[i*nx*ny+j*ny+k] = ind_arr[i*nx*ny*rec_count+j*ny*rec_count+k*rec_count];
+
+                        for (size_t m = 1; m < rec_count; ++m) {
+                            ind_arr[i*nx*ny*rec_count+j*ny*rec_count+k*rec_count+m] = round(calc_radius((x0+j*dx)-rec_coords[m*3],
+                                                                                                        (y0+k*dy)-rec_coords[m*3+1],
+                                                                                                        (z0+i*dz)-rec_coords[m*3+2])
+                                                                                                        /(vv*dt)) + 1;
+                            min_ind_arr[i*nx*ny+j*ny+k] = std::min(min_ind_arr[i*nx*ny+j*ny+k],
+                                                                   ind_arr[i*nx*ny*rec_count+j*ny*rec_count+k*rec_count+m]);
+                        }
                     }
                 }
             }
         }
 
-        #pragma omp for collapse(2)
+        #pragma omp for 
     	for (size_t c_t = 0; c_t < times; c_t += times_block_size) {
             for (size_t c_r = 0; c_r < rec_count; c_r += rec_block_size) {
-        		for (size_t i = 0; i < nz; ++i) {
+    		  for (size_t i = 0; i < nz; ++i) {
                     for (size_t j = 0; j < nx; ++j) {
                         for (size_t k = 0; k < ny; ++k) {
                             size_t min_ind = min_ind_arr[i*nx*ny+j*ny+k];
@@ -149,6 +167,7 @@ int main(int argc, char const *argv[]) {
                                     // }
                                     // return 0;
                                     area_discr[i*nx*ny*times+j*ny*times+k*times+l] += rec_times[m*times+ind+l];
+                                    //реализовать ручную векторизацию, сравнить с автоматической
                                 }
                             }
                         }
@@ -184,6 +203,7 @@ int main(int argc, char const *argv[]) {
     //                 temp2 += real_results[i*nx*ny*times+j*ny*times+k*times+l]*real_results[i*nx*ny*times+j*ny*times+k*times+l];
     //             }
     //         }
+    //             // return 1;
     //     }
     // }
     // result = sqrt(temp1)/sqrt(temp2);
