@@ -143,12 +143,23 @@ int main(int argc, char const *argv[]) {
                             size_t min_ind = min_ind_arr[i*nx*ny+j*ny+k];
                             for (size_t m = c_r; m < std::min(c_r+rec_block_size, rec_count); ++m) {
                                 size_t ind = ind_arr[i*nx*ny*rec_count+j*ny*rec_count+k*rec_count+m]-min_ind;
-                                for (size_t l = c_t; l < std::min(c_t+times_block_size, times-ind); ++l) {
-                                    // for (size_t m = 0; m < rec_count; ++m) {
-                                    //  std::cout << rec_times[m*times+ind_arr[m]+l-min_ind] << std::endl;
-                                    // }
-                                    // return 0;
-                                    area_discr[i*nx*ny*times+j*ny*times+k*times+l] += rec_times[m*times+ind+l];
+                                // for (size_t l = c_t; l < std::min(c_t+times_block_size, times-ind); ++l) {
+
+                                //     area_discr[i*nx*ny*times+j*ny*times+k*times+l] += rec_times[m*times+ind+l];
+                                // }
+                                for (size_t l = c_t; l < std::min(c_t+times_block_size, times-ind); l+=8) {
+                                	if (l != std::min(c_t+times_block_size, times-ind)-(std::min(c_t+times_block_size, times-ind)%8)) {
+                                		_mm256_load_ps(area_discr.get()+i*nx*ny*times+j*ny*times+k*times+l);
+                                		_mm256_load_ps(rec_times.get()+m*times+ind+l);
+                                		_mm256_add_ps(_mm256_load_ps(area_discr.get()+i*nx*ny*times+j*ny*times+k*times+l), _mm256_load_ps(rec_times.get()+m*times+ind+l));
+                                		std::cerr << "Aaa" << std::endl;
+                                		__m256 res = _mm256_add_ps(_mm256_load_ps(area_discr.get()+i*nx*ny*times+j*ny*times+k*times+l), _mm256_load_ps(rec_times.get()+m*times+ind+l));
+                                		_mm256_store_ps(area_discr.get()+i*nx*ny*times+j*ny*times+k*times+l, res);
+                                	} else {
+                                		for (size_t ln = l; ln < std::min(c_t+times_block_size, times-ind); ++ln) {
+                                			area_discr[i*nx*ny*times+j*ny*times+k*times+ln] += rec_times[m*times+ind+ln];		
+                                		}
+                                	}
                                 }
                             }
                         }
