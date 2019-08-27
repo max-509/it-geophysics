@@ -43,6 +43,7 @@ _mm256_set_pint(int i7, int i6, int i5, int i4, int i3, int i2, int i1, int i0) 
 }
 
 int main(int argc, char const *argv[]) {
+    omp_set_num_threads(12);
     std::ifstream data_file, receivers_file;
     data_file.open("../Data_noise_free.bin", std::ios::binary);
     if (!data_file.is_open()) {
@@ -82,9 +83,21 @@ int main(int argc, char const *argv[]) {
     std::unique_ptr<float[]> area_discr{new float[times*nx*ny*nz]};
 
     float dx, dy, dz;
-    if (1 < nx) dx = ((float)(x1-x0))/(nx-1);
-    if (1 < ny) dy = ((float)(y1-y0))/(ny-1);
-    if (1 < nz) dz = ((float)(z1-z0))/(nz-1);
+    if (1 < nx) {
+        dx = ((float)(x1-x0))/(nx-1);
+    } else {
+        dx = 0;
+    }
+    if (1 < ny) {
+        dy = ((float)(y1-y0))/(ny-1);
+    } else {
+        dy = 0;
+    }
+    if (1 < nz) {
+        dz = ((float)(z1-z0))/(nz-1);
+    } else {
+        dz = 0;
+    }
 
     double t1, t2;
 
@@ -96,17 +109,16 @@ int main(int argc, char const *argv[]) {
     if (argc >= 3) {
         times_block_size = atoi(argv[2]);
     }
-
     std::unique_ptr<int[]> min_ind_arr{new int[nx*ny*nz]};
     std::unique_ptr<int[]> ind_arr{new int[nx*ny*nz*rec_count]};
     __m256 vect_rec_coord[(rec_count/8)*3];
     t1 = omp_get_wtime();
     //algorithm
     //******************************************************//
-    //#pragma omp parallel
+    #pragma omp parallel
     {
         if (rec_count >= 8) {
-           // #pragma omp for collapse(2)
+           #pragma omp for collapse(2)
             for (size_t m = 0; m < rec_count; m+=8) {
                 for (size_t i = 0; i < 3; ++i) {
                     vect_rec_coord[(m/8)*3+i] = _mm256_set_ps(rec_coords[(m+7)*3+i], rec_coords[(m+6)*3+i], rec_coords[(m+5)*3+i], rec_coords[(m+4)*3+i],
@@ -114,7 +126,7 @@ int main(int argc, char const *argv[]) {
                 }
             }
             __m256 vect_ind_min;
-           // #pragma omp for collapse(3)
+           #pragma omp for collapse(3)
             for (size_t i = 0; i < nz; ++i) {
                 for (size_t j = 0; j < nx; ++j) {
                     for (size_t k = 0; k < ny; ++k) {
@@ -130,26 +142,25 @@ int main(int argc, char const *argv[]) {
                             } else {
                                 vect_ind_min = vect_ind;
                             }
-                            // float temp_ind[8] __attribute__ ((aligned(32)));
+                            // float temp_ind[8];
                             // _mm256_store_ps(temp_ind, vect_ind);
                             // for (size_t v = 0; v < 8; ++v) {
                             //     ind_arr[i*nx*ny*rec_count+j*ny*rec_count+k*rec_count+m+v] = temp_ind[v];
                             // }
-                            // int cast_ind_vect2[8] __attribute__ ((aligned (64)));
-                            //__m256i cast_ind_vect = _mm256_castps_si256(vect_ind);
 
-                            __m256int cast_ind_vect = _mm256_set_pint(vect_ind[7], vect_ind[6], vect_ind[5], vect_ind[4], vect_ind[3], vect_ind[2], vect_ind[1], vect_ind[0]);
-                            _mm256_storeu_sint256((ind_arr.get()+i*nx*ny*rec_count+j*ny*rec_count+k*rec_count+m), cast_ind_vect);
+                            // __m256int cast_ind_vect = _mm256_castps_sint256(vect_ind);
+                            // __m256int cast_ind_vect = _mm256_set_pint(vect_ind[7], vect_ind[6], vect_ind[5], vect_ind[4], vect_ind[3], vect_ind[2], vect_ind[1], vect_ind[0]);
+                            // _mm256_storeu_sint256(ind_arr.get()+i*nx*ny*rec_count+j*ny*rec_count+k*rec_count+m, cast_ind_vect);
 
-                            // __m256i cast_ind_vect = _mm256_set_epi32(vect_ind[7],vect_ind[6],vect_ind[5],vect_ind[4],vect_ind[3],vect_ind[2],vect_ind[1],vect_ind[0]);
-                            // _mm256_store_si256((__m256i*)(&ind_arr[i*nx*ny*rec_count+j*ny*rec_count+k*rec_count+m]), cast_ind_vect);
+                            __m256i cast_ind_vect = _mm256_set_epi32(vect_ind[7],vect_ind[6],vect_ind[5],vect_ind[4],vect_ind[3],vect_ind[2],vect_ind[1],vect_ind[0]);
+                            _mm256_store_si256((__m256i*)(&ind_arr[i*nx*ny*rec_count+j*ny*rec_count+k*rec_count+m]), cast_ind_vect);
                             // std::cout << cast_ind_vect2[0] << " " << cast_ind_vect2[1] << " " << cast_ind_vect2[2] << " " << cast_ind_vect2[3] << " " 
                             // << cast_ind_vect2[4] << " " << cast_ind_vect2[5] << " " << cast_ind_vect2[6] << " " << cast_ind_vect2[7] << std::endl;
                             //__m256i cast_ind_vect = _mm256_castps_si256(vect_ind);
                             //_mm256_store_si256((__m256i*)(&ind_arr[i*nx*ny*rec_count+j*ny*rec_count+k*rec_count+m]), *(__m256i*)cast_ind_vect);
                         }
 
-                        float min_indexes[8] __attribute__ ((aligned(32)));
+                        float min_indexes[8];
                         _mm256_store_ps(min_indexes, vect_ind_min);
                         min_ind_arr[i*nx*ny+j*ny+k] = *std::min_element(min_indexes, min_indexes+8);
 
@@ -165,7 +176,7 @@ int main(int argc, char const *argv[]) {
                 }
             }
         } else {
-           // #pragma omp for collapse(3)
+           #pragma omp for collapse(3)
             for (size_t i = 0; i < nz; ++i) {
                 for (size_t j = 0; j < nx; ++j) {
                     for (size_t k = 0; k < ny; ++k) {
@@ -188,7 +199,7 @@ int main(int argc, char const *argv[]) {
             }
         }
 
-       // #pragma omp for 
+       #pragma omp for 
     	for (size_t c_t = 0; c_t < times; c_t += times_block_size) {
             for (size_t c_r = 0; c_r < rec_count; c_r += rec_block_size) {
     		    for (size_t i = 0; i < nz; ++i) {

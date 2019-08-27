@@ -1,0 +1,1 @@
+void compute(const float* rec_samples, const float* rec_coords, const float* area_coords, int n_samples, int n_rec, int n_xyz, float dt, float vv, float* result_data);
