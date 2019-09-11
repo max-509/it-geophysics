@@ -10,9 +10,6 @@
 #include <functional>
 
 namespace {
-	typedef int __m256int __attribute__ ((vector_size(32), __may_alias__));
-	typedef int __m256int_u __attribute__((vector_size(32), __may_alias__, __aligned__ (1)));
-
 	inline float calc_radius(float dx, float dy, float dz) {
 	    return sqrt(dx*dx+dy*dy+dz*dz);
 	}
@@ -20,31 +17,11 @@ namespace {
 	inline __m256 vect_calc_radius(__m256 dx, __m256 dy, __m256 dz) {
 	    return _mm256_sqrt_ps(_mm256_add_ps(_mm256_add_ps(_mm256_mul_ps(dx, dx), _mm256_mul_ps(dy, dy)), _mm256_mul_ps(dz, dz)));
 	}
-
-	__inline __m256int __attribute__((__gnu_inline__, __always_inline__, __artificial__))
-	_mm256_castps_sint256(__m256 __A) {
-	    return (__m256int) __A;
-	}
-
-	__inline void __attribute__((__gnu_inline__, __always_inline__, __artificial__)) 
-	_mm256_store_sint256(int* A, __m256int B) {
-	    *(__m256int*)A = B;
-	}
-
-	__inline void __attribute__((__gnu_inline__, __always_inline__, __artificial__)) 
-	_mm256_storeu_sint256(int* A, __m256int B) {
-	    *(__m256int_u*)A = B;
-	}
-
-	__inline __m256int __attribute__((__gnu_inline__, __always_inline__, __artificial__)) 
-	_mm256_set_pint(int i7, int i6, int i5, int i4, int i3, int i2, int i1, int i0) {
-	    return __extension__ (__m256int)(__v8si){i0, i1, i2, i3, i4, i5, i6, i7};
-	}
 }
 
 void coherent_summation(const float* rec_samples, const float* rec_coords, const float* area_coords, int n_samples, int n_rec, int n_xyz, float dt, float vv, float* result_data) {
-	int rec_block_size = 15;
-    int samples_block_size = 1000;
+	int rec_block_size = 60;
+    int samples_block_size = 400;
 
     std::unique_ptr<int[]> min_ind_arr{new int[n_xyz]};
     std::unique_ptr<int[]> ind_arr{new int[n_xyz*n_rec]};
