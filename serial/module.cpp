@@ -1,20 +1,19 @@
 #include "coherent_summation.h"
 #include "numpy/arrayobject.h"
 
+#include <cstdint>
 #include <Python.h>
 
 static PyObject *CompError;
 
-//npy_intp to std::ptrdiff_t
-
 static PyObject* compute_coherent_summation(PyObject* self, PyObject* args) {
 	PyObject *arg1 = nullptr, *arg2 = nullptr, *arg3 = nullptr;
-	float dt, vv;
-	if (!PyArg_ParseTuple(args, "OOOff", &arg1, &arg2, &arg3, &dt, &vv)) {
+
+	if (!PyArg_ParseTuple(args, "OOO", &arg1, &arg2, &arg3  )) {
 		return nullptr;
 	}
 
-	PyObject *rec_samples = nullptr, *rec_coords = nullptr, *area_coords = nullptr;
+	PyObject *rec_samples = nullptr, *rec_coords = nullptr, *sources_times = nullptr;
 	rec_samples = PyArray_FROM_OTF(arg1, NPY_FLOAT32, NPY_ARRAY_ALIGNED);
 	if (rec_samples == nullptr) {
 		return nullptr;
@@ -23,8 +22,8 @@ static PyObject* compute_coherent_summation(PyObject* self, PyObject* args) {
 	if (rec_coords == nullptr) {
 		return nullptr;
 	}
-	area_coords = PyArray_FROM_OTF(arg3, NPY_FLOAT32, NPY_ARRAY_ALIGNED);
-	if (area_coords == nullptr) {
+	sources_times = PyArray_FROM_OTF(arg3, NPY_INT32, NPY_ARRAY_ALIGNED);
+	if (sources_times == nullptr) {
 		return nullptr;
 	}
 
@@ -42,14 +41,14 @@ static PyObject* compute_coherent_summation(PyObject* self, PyObject* args) {
 		return nullptr;
 	}
 
-	const npy_intp n_xyz = PyArray_DIMS(area_coords)[0];
-	if (PyArray_DIMS(area_coords)[1] != 3) {
+	const npy_intp n_xyz = PyArray_DIMS(sources_times)[0];
+	if (PyArray_DIMS(sources_times)[1] != n_rec1) {
 		PyErr_SetString(CompError, "Incorrect area coordinates data");
 	} 
 
 	float *rec_samples_data = (float*)PyArray_DATA(rec_samples);
 	float *rec_coords_data = (float*)PyArray_DATA(rec_coords);
-	float *area_coords_data = (float*)PyArray_DATA(area_coords);
+	int32_t *sources_times_data = (int32_t*)PyArray_DATA(sources_times);
 
 	npy_intp result_dims[2] = {n_xyz, n_samples};
 	PyObject *result_arr = PyArray_ZEROS(2, result_dims, NPY_FLOAT32, 0);
@@ -60,7 +59,7 @@ static PyObject* compute_coherent_summation(PyObject* self, PyObject* args) {
 
 	float* result_arr_data = (float*)PyArray_DATA(result_arr);
 
-	compute(rec_samples_data, rec_coords_data, area_coords_data, n_samples, n_rec1, n_xyz, dt, vv, result_arr_data);
+	compute(rec_samples_data, rec_coords_data, sources_times_data, n_samples, n_rec1, n_xyz, result_arr_data);
 
 	return result_arr;
 
@@ -82,7 +81,10 @@ static struct PyModuleDef module =
 };
 
 PyMODINIT_FUNC 
-PyInit_module() {
+PyInit_CoherentSumModule() {
+
+	import_array();
+
 	PyObject* m = nullptr;
 	m = PyModule_Create(&module);
 	if (m == nullptr) return nullptr;
