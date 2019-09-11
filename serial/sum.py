@@ -39,9 +39,9 @@ while i < 10:
 	while j < 10:
 		k = 0
 		while k < 10:
-			sources[i*100+j*10+k][0] = x0+d*i
-			sources[i*100+j*10+k][1] = y0+d*j
-			sources[i*100+j*10+k][2] = z0+d*k
+			sources[i*100+j*10+k][0] = x0+d*j
+			sources[i*100+j*10+k][1] = y0+d*k
+			sources[i*100+j*10+k][2] = z0+d*i
 			k+=1
 		j+=1
 	i+=1
@@ -55,7 +55,7 @@ while i < 1000:
 														sources[i][1]-receivers[0][1],
 														sources[i][2]-receivers[0][2])
 														/(vv*dt))+1)
-	min_ind = sources_times[i][0]
+	min_ind = int(sources_times[i][0])
 	m = 1
 	while m < 2000:
 		sources_times[i][m] = int(round_half_up(calc_radius(sources[i][0]-receivers[m][0], 
@@ -74,14 +74,14 @@ result = CoherentSumModule.computeCoherentSummation(data, receivers, sources_tim
 result = result.reshape(1000*10000)
 print(result)
 
-another_results = np.fromfile('./Results.bin', dtype=np.float32)
+another_results = np.fromfile('../Summation_Results2.bin', dtype=np.float32)
 print(another_results)
 
 x = np.arange(1000*10000, dtype=np.int32)
 i=0
 while i < 10000000:
-	another_results[i] = another_results[i] - result[i]
-	x[i] = i+1
+	another_results[i] = another_results[i]-result[i]
+	x[i] = i
 	i+=1
 
 fig = go.Figure()
