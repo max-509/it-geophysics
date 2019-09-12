@@ -1,7 +1,7 @@
 #include "coherent_summation.h"
-#include "numpy/arrayobject.h"
 
 #include <cstdint>
+#include <numpy/arrayobject.h>
 #include <Python.h>
 
 static PyObject *CompError;
