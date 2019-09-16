@@ -18,7 +18,7 @@ receivers = np.fromfile('../Receivers_Array.bin', dtype=np.float32)
 receivers = receivers.reshape(2000, 3)
 
 dt = 0.002
-vv = 3000.0
+vv = 3000
 
 sources = np.arange(1000*3, dtype=np.float32)
 sources = sources.reshape(1000, 3)
@@ -72,10 +72,8 @@ while i < 1000:
 	
 result = CoherentSumModule.computeCoherentSummation(data, receivers, sources_times)
 result = result.reshape(1000*10000)
-print(result)
 
 another_results = np.fromfile('../Summation_Results2.bin', dtype=np.float32)
-print(another_results)
 
 x = np.arange(1000*10000, dtype=np.int32)
 i=0

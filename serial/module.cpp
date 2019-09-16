@@ -9,7 +9,7 @@ static PyObject *CompError;
 static PyObject* compute_coherent_summation(PyObject* self, PyObject* args) {
 	PyObject *arg1 = nullptr, *arg2 = nullptr, *arg3 = nullptr;
 
-	if (!PyArg_ParseTuple(args, "OOO", &arg1, &arg2, &arg3  )) {
+	if (!PyArg_ParseTuple(args, "OOO", &arg1, &arg2, &arg3)) {
 		return nullptr;
 	}
 
