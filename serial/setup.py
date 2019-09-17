@@ -34,17 +34,10 @@ class cmake_build_ext(build_ext):
 			subprocess.check_call(['cmake', '--build', '.', '--config'],
 										cwd=self.build_temp)
 
-
-module = CMakeExtension("CoherentSumModule", '.',
-					extra_compile_args=["-O3", "-mavx2", "-fopenmp", "-std=c++11"],
-					include_dirs=["/usr/local/include", numpy.get_include()],
-					extra_link_args=['coherent_summation.a'],
-					libraries=["gomp"])
-
 setup (name = 'Coherent summation',
        version = '1.0',
        description = 'Coherent summation package',
        author = 'Vershinin Maxim',
        author_email = 'm.vershinin@g.nsu.ru',
-       ext_modules = [module],
+       ext_modules = [CMakeExtension("CoherentSumModule", '.')],
        cmdclass = {'build_ext': cmake_build_ext})
