@@ -5,19 +5,19 @@ using AmplitudesComputerType = AmplitudesCalculatorNonVectors<T>;
 #endif
 
 #ifdef VECT_128
-#include "amplitudes_calculator_m128.h"
+#include "src/amplitudes_calculator_m128.h"
 template <typename T>
 using AmplitudesComputerType = AmplitudesCalculatorM128<T>;
 #endif
 
 #ifdef VECT_256
-#include "amplitudes_calculator_m256.h"
+#include "src/amplitudes_calculator_m256.h"
 template <typename T>
 using AmplitudesComputerType = AmplitudesCalculatorM256<T>;
 #endif
 
 #ifdef VECT_512
-#include "amplitudes_calculator_m512.h"
+#include "src/amplitudes_calculator_m512.h"
 template <typename T>
 using AmplitudesComputerType = AmplitudesCalculatorM512<T>;
 #endif
@@ -29,21 +29,22 @@ using AmplitudesComputerType = AmplitudesCalculatorM512<T>;
 #include <cstdlib>
 
 int main(int argc, char const *argv[]) {
-	ptrdiff_t n_rec = 5000;
-	ptrdiff_t n_sources = 50000;
+	ptrdiff_t n_rec = atol(argv[1]);
+	ptrdiff_t n_sources = atol(argv[2]);
 	ptrdiff_t matrix_dim = 3;
 
-	double *sources = new double[n_sources*3];
-	double *rec = new double[n_rec*3];
-	double *tensor_matrix = new double[6];
-	double *amplitudes = new double[n_sources*n_rec*3];
+	float *sources = new float[n_sources*3];
+	float *rec = new float[n_rec*3];
+	float *tensor_matrix = new float[6];
+	float *amplitudes = new float[n_sources*n_rec*3];
 
-	double t1 = omp_get_wtime();
-	AmplitudesComputerType<double> computer(sources, rec, tensor_matrix, n_sources, n_rec, amplitudes);
-	double t2 = omp_get_wtime();
+	float t1 = omp_get_wtime();
+	AmplitudesComputerType<float> computer(sources, rec, tensor_matrix, n_sources, n_rec, amplitudes);
+	computer.calculate();
+	float t2 = omp_get_wtime();
 
-	printf("Anti opt: %d\n", amplitudes[0]);
-	printf("Srcs: %d, Recs: %d, Time: %f\n", n_sources, n_rec, t2-t1);
+	fprintf(stderr, "Anti opt: %d\n", amplitudes[0]);
+	printf("Recs: %d, Srcs: %d, Time: %.2f\n", n_rec, n_sources, t2-t1);
 
 	delete [] sources;
 	delete [] rec;

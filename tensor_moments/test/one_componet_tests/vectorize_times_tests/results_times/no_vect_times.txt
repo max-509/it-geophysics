@@ -1,0 +1,25 @@
+type == double
+
+Recs: 10000, Srcs: 20000, Time: 2.63
+Recs: 10000, Srcs: 40000, Time: 5.26
+Recs: 10000, Srcs: 60000, Time: 7.88
+Recs: 10000, Srcs: 80000, Time: 10.51
+Recs: 10000, Srcs: 100000, Time: 13.24
+Recs: 20000, Srcs: 20000, Time: 5.26
+Recs: 20000, Srcs: 40000, Time: 10.88
+Recs: 20000, Srcs: 60000, Time: 15.76
+Recs: 20000, Srcs: 80000, Time: 21.01
+Recs: 20000, Srcs: 100000, Time: 26.26
+
+type == float
+
+Recs: 10000, Srcs: 40000, Time: 5.83
+Recs: 10000, Srcs: 80000, Time: 11.47
+Recs: 10000, Srcs: 120000, Time: 17.07
+Recs: 10000, Srcs: 160000, Time: 22.81
+Recs: 10000, Srcs: 190000, Time: 27.09
+Recs: 20000, Srcs: 40000, Time: 11.26
+Recs: 20000, Srcs: 80000, Time: 22.49
+Recs: 20000, Srcs: 120000, Time: 33.71
+Recs: 20000, Srcs: 160000, Time: 44.96
+Recs: 20000, Srcs: 190000, Time: 53.29
