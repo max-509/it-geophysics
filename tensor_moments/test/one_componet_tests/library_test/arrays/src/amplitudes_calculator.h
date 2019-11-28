@@ -3,6 +3,7 @@
 
 #include <cstddef>
 #include <cmath>
+#include <omp.h>
 
 template <typename T, typename Realization>
 class AmplitudesCalculator {

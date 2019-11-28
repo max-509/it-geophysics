@@ -9,9 +9,9 @@
 #include <cstdlib>
 
 int main(int argc, char const *argv[]) {
-	ptrdiff_t n_rec = 2000;
-	ptrdiff_t sources_count = 3000;
-	ptrdiff_t n_samples = 10000;
+	ptrdiff_t n_rec = atol(argv[1]);
+	ptrdiff_t sources_count = atol(argv[2]);
+	ptrdiff_t n_samples = atol(argv[3]);
 
 	double *sources_coords_data = new double[sources_count*3];
 	double *rec_coords_data = new double[n_rec*3];
@@ -29,10 +29,8 @@ int main(int argc, char const *argv[]) {
 	compute(rec_samples_data3D, rec_coords_data2D, sources_coords_data2D, sources_times_data2D, tensor_matrix_data, data);
 	double t2 = omp_get_wtime();
 
-	printf("anti_opt: %f\n", data[0]);
-	printf("anti_opt: %f\n", data[10]);
-	printf("anti_opt: %f\n", data[20]);
-	printf("N_smps: %d, Srcs: %d, Recs: %d, Time: %f\n", n_samples, sources_count, n_rec, t2-t1);
+	fprintf(stderr, "anti_opt: %f\n", data[0]);
+	printf("Recs: %d, Srcs: %d, Smpls: %d, Time: %.2f\n", n_rec, sources_count, n_samples, t2-t1);
 
 	delete [] sources_coords_data;
 	delete [] rec_coords_data;
