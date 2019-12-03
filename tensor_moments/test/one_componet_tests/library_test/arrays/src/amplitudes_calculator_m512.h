@@ -8,7 +8,6 @@
 #include <cstdlib>
 #include <cmath>
 #include <memory>
-#include <omp.h>
 
 template <typename T>
 class AmplitudesCalculatorM512 : public AmplitudesCalculator<T, AmplitudesCalculatorM512<T>> {
@@ -53,27 +52,20 @@ template <>
 void AmplitudesCalculatorM512<float>::realize_calculate() {
     ptrdiff_t matrix_size = 6;
     ptrdiff_t vector_dim = sizeof(__m512)/sizeof(float);
-    std::unique_ptr<__m512[], decltype(free)*> vect_rec_coord{reinterpret_cast<__m512*>(aligned_alloc(sizeof(__m512), sizeof(__m512)*(n_rec/vector_dim)*3)), free};
 
     #pragma omp parallel
     {
-        #pragma omp for collapse(2)
-        for (ptrdiff_t r_ind = 0; r_ind < n_rec-(n_rec%vector_dim); r_ind+=vector_dim) {
-            for (ptrdiff_t i = 0; i < 3; ++i) {
-                vect_rec_coord[(r_ind/vector_dim)*3+i] = _mm512_set_ps(rec_coords_[(r_ind+15)*3+i], rec_coords_[(r_ind+14)*3+i], rec_coords_[(r_ind+13)*3+i], rec_coords_[(r_ind+12)*3+i],
-                                                                       rec_coords_[(r_ind+11)*3+i], rec_coords_[(r_ind+10)*3+i], rec_coords_[(r_ind+9)*3+i], rec_coords_[(r_ind+8)*3+i],
-                                                                       rec_coords_[(r_ind+7)*3+i], rec_coords_[(r_ind+6)*3+i], rec_coords_[(r_ind+5)*3+i], rec_coords_[(r_ind+4)*3+i],
-                                                                       rec_coords_[(r_ind+3)*3+i], rec_coords_[(r_ind+2)*3+i], rec_coords_[(r_ind+1)*3+i], rec_coords_[(r_ind)*3+i]);
-            }
-        }
-
         __m512 coord_vec[3];
         __m512 G_P_vect[matrix_size];
         #pragma omp for collapse(2)
         for (ptrdiff_t i = 0; i < sources_count; ++i) {
             for (ptrdiff_t r_ind = 0; r_ind < n_rec-(n_rec%vector_dim); r_ind+=vector_dim) {
                 for (ptrdiff_t crd = 0; crd < 3; ++crd) {
-                    coord_vec[crd] = _mm512_sub_ps(vect_rec_coord[(r_ind/vector_dim)*3+crd], _mm512_set1_ps(sources_coords_[i*3+crd]));
+                    coord_vec[crd] = _mm512_sub_ps(_mm512_set_ps(rec_coords_[(r_ind+15)*3+crd], rec_coords_[(r_ind+14)*3+crd], rec_coords_[(r_ind+13)*3+crd], rec_coords_[(r_ind+12)*3+crd],
+                                                               rec_coords_[(r_ind+11)*3+crd], rec_coords_[(r_ind+10)*3+crd], rec_coords_[(r_ind+9)*3+crd], rec_coords_[(r_ind+8)*3+crd],
+                                                               rec_coords_[(r_ind+7)*3+crd], rec_coords_[(r_ind+6)*3+crd], rec_coords_[(r_ind+5)*3+crd], rec_coords_[(r_ind+4)*3+crd],
+                                                               rec_coords_[(r_ind+3)*3+crd], rec_coords_[(r_ind+2)*3+crd], rec_coords_[(r_ind+1)*3+crd], rec_coords_[(r_ind)*3+crd]
+                                                               ), _mm512_set1_ps(sources_coords_[i*3+crd]));
                 }
 
                 __m512 dist = vect_calc_norm(coord_vec[0], coord_vec[1], coord_vec[2]);
@@ -100,25 +92,18 @@ template<>
 void AmplitudesCalculatorM512<double>::realize_calculate() {
     ptrdiff_t matrix_size = 6;
     ptrdiff_t vector_dim = sizeof(__m512d)/sizeof(double);
-    std::unique_ptr<__m512d[], decltype(free)*> vect_rec_coord{reinterpret_cast<__m512d*>(aligned_alloc(sizeof(__m512d), sizeof(__m512d)*(n_rec/vector_dim)*3)), free};
 
     #pragma omp parallel
     {
-        #pragma omp for collapse(2)
-        for (ptrdiff_t r_ind = 0; r_ind < n_rec-(n_rec%vector_dim); r_ind+=vector_dim) {
-            for (ptrdiff_t i = 0; i < 3; ++i) {
-                vect_rec_coord[(r_ind/vector_dim)*3+i] = _mm512_set_pd(rec_coords_[(r_ind+7)*3+i], rec_coords_[(r_ind+6)*3+i], rec_coords_[(r_ind+5)*3+i], rec_coords_[(r_ind+4)*3+i],
-                                                                       rec_coords_[(r_ind+3)*3+i], rec_coords_[(r_ind+2)*3+i], rec_coords_[(r_ind+1)*3+i], rec_coords_[(r_ind)*3+i]);
-            }
-        }
-
         __m512d coord_vec[3];
         __m512d G_P_vect[matrix_size];
         #pragma omp for collapse(2)
         for (ptrdiff_t i = 0; i < sources_count; ++i) {
             for (ptrdiff_t r_ind = 0; r_ind < n_rec-(n_rec%vector_dim); r_ind+=vector_dim) {
                 for (ptrdiff_t crd = 0; crd < 3; ++crd) {
-                    coord_vec[crd] = _mm512_sub_pd(vect_rec_coord[(r_ind/vector_dim)*3+crd], _mm512_set1_pd(sources_coords_[i*3+crd]));
+                    coord_vec[crd] = _mm512_sub_pd(_mm512_set_pd(rec_coords_[(r_ind+7)*3+crd], rec_coords_[(r_ind+6)*3+crd], rec_coords_[(r_ind+5)*3+crd], rec_coords_[(r_ind+4)*3+crd],
+                                                                 rec_coords_[(r_ind+3)*3+crd], rec_coords_[(r_ind+2)*3+crd], rec_coords_[(r_ind+1)*3+crd], rec_coords_[(r_ind)*3+crd]
+                                                                 ), _mm512_set1_pd(sources_coords_[i*3+crd]));
                 }
 
                 __m512d dist = vect_calc_norm(coord_vec[0], coord_vec[1], coord_vec[2]);

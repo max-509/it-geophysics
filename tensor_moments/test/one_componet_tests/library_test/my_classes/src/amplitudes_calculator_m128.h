@@ -9,6 +9,7 @@
 #include <cstdlib>
 #include <cmath>
 #include <memory>
+#include <omp.h>
 
 template <typename T>
 class AmplitudesCalculatorM128 : public AmplitudesCalculator<T, AmplitudesCalculatorM128<T>> {
