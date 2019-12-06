@@ -8,6 +8,7 @@
 #include <cstdlib>
 #include <cmath>
 #include <memory>
+#include <iostream>
 
 #define ALIGNED(n) __attribute__((aligned(n)))
 
@@ -90,7 +91,7 @@ void AmplitudesCalculatorM128<float>::realize_calculate() {
     ptrdiff_t vector_dim = sizeof(__m128)/sizeof(float);
     // std::unique_ptr<__m128[], decltype(free)*> vect_rec_coord{static_cast<__m128*>(aligned_alloc(sizeof(__m128), sizeof(__m128)*(n_rec/vector_dim)*3)), free};
 
-    #pragma omp parallel
+    // #pragma omp parallel
     {
         // #pragma omp for collapse(2)
         // for (ptrdiff_t r_ind = 0; r_ind < n_rec-(n_rec%vector_dim); r_ind+=vector_dim) {
@@ -102,13 +103,13 @@ void AmplitudesCalculatorM128<float>::realize_calculate() {
         __m128 coord_vec[3];
         __m128 G_P_vect[matrix_size];
         // ALIGNED(16) float coords[vector_dim*3];
-        ALIGNED(16) float coords_transposed[vector_dim*3];
-        ALIGNED(16) float G_P[matrix_size*vector_dim];
-        #pragma omp for collapse(2)
+        // ALIGNED(16) float coords_transposed[vector_dim*3];
+        // ALIGNED(16) float G_P[matrix_size*vector_dim];
+        // #pragma omp for collapse(2)
         for (ptrdiff_t i = 0; i < sources_count; ++i) {
             for (ptrdiff_t r_ind = 0; r_ind < n_rec-(n_rec%vector_dim); r_ind+=vector_dim) {
                 for (ptrdiff_t crd = 0; crd < 3; ++crd) {
-                    coord_vec[crd] = _mm_sub_ps(_mm_set_ps(rec_coords_[(r_ind+3)*3+i], rec_coords_[(r_ind+2)*3+i], rec_coords_[(r_ind+1)*3+i], rec_coords_[(r_ind)*3+i]), _mm_set1_ps(sources_coords_[i*3+crd]));
+                    coord_vec[crd] = _mm_sub_ps(_mm_set_ps(rec_coords_[(r_ind+3)*3+crd], rec_coords_[(r_ind+2)*3+crd], rec_coords_[(r_ind+1)*3+crd], rec_coords_[(r_ind)*3+crd]), _mm_set1_ps(sources_coords_[i*3+crd]));
                 }
 
                 __m128 dist = vect_calc_dist(coord_vec[0], coord_vec[1], coord_vec[2]);
@@ -123,17 +124,39 @@ void AmplitudesCalculatorM128<float>::realize_calculate() {
                 G_P_vect[4] = _mm_div_ps(_mm_mul_ps(coord_vec[0], coord_vec[2]), dist);
                 G_P_vect[5] = _mm_div_ps(_mm_mul_ps(coord_vec[1], coord_vec[2]), dist);
 
-                transpose_coord_vect(coord_vec, coords_transposed);
+                // transpose_coord_vect(coord_vec, coords_transposed);
 
+                // for (ptrdiff_t m = 0; m < matrix_size; ++m) {
+                //     _mm_storeu_ps(G_P+m*vector_dim, G_P_vect[m]);
+                //     #pragma omp simd
+                //     for (ptrdiff_t v_s = 0; v_s < vector_dim; ++v_s) {
+                //         for (ptrdiff_t rec_comp = 0; rec_comp < 3; ++rec_comp) {
+                //             amplitudes_[i*n_rec*3+(r_ind+v_s)*3+rec_comp] += G_P[m*vector_dim+v_s]*coords_transposed[v_s*3+rec_comp]*tensor_matrix_[m];
+                //         }
+                //     }
+                // }
+
+                ALIGNED(16) float tmp_dot[4] = {};
                 for (ptrdiff_t m = 0; m < matrix_size; ++m) {
-                    _mm_storeu_ps(G_P+m*vector_dim, G_P_vect[m]);
-                    #pragma omp simd
-                    for (ptrdiff_t v_s = 0; v_s < vector_dim; ++v_s) {
-                        for (ptrdiff_t rec_comp = 0; rec_comp < 3; ++rec_comp) {
-                            amplitudes_[i*n_rec*3+(r_ind+v_s)*3+rec_comp] += G_P[m*vector_dim+v_s]*coords_transposed[v_s*3+rec_comp]*tensor_matrix_[m];
-                        }
-                    }
+                    _mm_store_ps(tmp_dot, _mm_add_ps(_mm_load_ps(tmp_dot), _mm_mul_ps(G_P_vect[m], _mm_set1_ps(tensor_matrix_[m]))));
                 }
+
+                __m128 extra_row = _mm_setzero_ps();
+                _MM_TRANSPOSE4_PS(coord_vec[0], extra_row, coord_vec[1], coord_vec[2]);
+
+                coord_vec[0] = _mm_mul_ps(coord_vec[0], _mm_set1_ps(tmp_dot[0]));
+                extra_row = _mm_mul_ps(extra_row, _mm_set1_ps(tmp_dot[1]));
+                coord_vec[1] = _mm_mul_ps(coord_vec[1], _mm_set1_ps(tmp_dot[2]));
+                coord_vec[2] = _mm_mul_ps(coord_vec[2], _mm_set1_ps(tmp_dot[3]));
+
+                _mm_store_ss(amplitudes_+i*n_rec*3+r_ind*3, coord_vec[0]);
+                _mm_storeh_pi((__m64*)amplitudes_+i*n_rec*3+r_ind*3+1, coord_vec[0]);
+                _mm_store_ss(amplitudes_+i*n_rec*3+(r_ind+1)*3, extra_row);
+                _mm_storeh_pi((__m64*)amplitudes_+i*n_rec*3+(r_ind+1)*3+1, extra_row);
+                _mm_store_ss(amplitudes_+i*n_rec*3+(r_ind+2)*3, coord_vec[1]);
+                _mm_storeh_pi((__m64*)amplitudes_+i*n_rec*3+(r_ind+2)*3+1, coord_vec[1]);
+                _mm_store_ss(amplitudes_+i*n_rec*3+(r_ind+3)*3, coord_vec[2]);
+                _mm_storeh_pi((__m64*)amplitudes_+i*n_rec*3+(r_ind+3)*3+1, coord_vec[2]);
             }
         }       
     }
@@ -158,8 +181,8 @@ void AmplitudesCalculatorM128<double>::realize_calculate() {
         ALIGNED(16) __m128d coord_vec[3];
         ALIGNED(16) __m128d G_P_vect[matrix_size];
         // ALIGNED(16) double coords[vector_dim*3];
-        ALIGNED(16) double coords_transposed[vector_dim*3];
-        ALIGNED(16) double G_P[matrix_size*vector_dim];
+        // ALIGNED(16) double coords_transposed[vector_dim*3];
+        // ALIGNED(16) double G_P[matrix_size*vector_dim];
         #pragma omp for collapse(2)
         for (ptrdiff_t i = 0; i < sources_count; ++i) {
             for (ptrdiff_t r_ind = 0; r_ind < n_rec-(n_rec%vector_dim); r_ind+=vector_dim) {
@@ -193,20 +216,20 @@ void AmplitudesCalculatorM128<double>::realize_calculate() {
 
                 _MM_TRANSPOSE3_PD(coord_vec[0], coord_vec[1], coord_vec[2]);
 
-                ALIGNED(16) double tmp_dot[vector_dim] = {0., 0.};
+                ALIGNED(16) double tmp_dot[2] = {};
                 for (ptrdiff_t m = 0; m < matrix_size; ++m) {
                     // _mm_store_pd(G_P+m*vector_dim, G_P_vect[m]);
-                    _mm_store_pd(tmp_dot, _mm_add_pd(_mm_load_pd(tmp_dot), _mm_mul_pd(G_P_vect[m], _mm_set_pd(tensor_matrix_[m]))));
+                    _mm_store_pd(tmp_dot, _mm_add_pd(_mm_load_pd(tmp_dot), _mm_mul_pd(G_P_vect[m], _mm_set1_pd(tensor_matrix_[m]))));
                     // #pragma omp simd
                     // for (ptrdiff_t v_s = 0; v_s < vector_dim; ++v_s) {
-                    //     tmp_dot[v_s] += G_P[m*vector_dim+v_s]*tensor_matrix_[m];
+                        // tmp_dot[v_s] += G_P[m*vector_dim+v_s]*tensor_matrix_[m];
                     // }
                 }
 
-                _mm_storeu_pd(amplitudes_+i*n_rec*3+r_ind*3, _mm_mul_pd(coord_vec[0], _mm_set_pd(tmp_dot[0])));
+                _mm_storeu_pd(amplitudes_+i*n_rec*3+r_ind*3, _mm_mul_pd(coord_vec[0], _mm_set1_pd(tmp_dot[0])));
                 amplitudes_[i*n_rec*3+r_ind*3+2] = _mm_cvtsd_f64(coord_vec[1])*tmp_dot[0];
                 amplitudes_[i*n_rec*3+(r_ind+1)*3+2] = _mm_cvtsd_f64(_mm_unpackhi_pd(coord_vec[1], _mm_setzero_pd()))*tmp_dot[1];
-                _mm_storeu_pd(amplitudes_+i*n_rec*3+(r_ind+1)*3+1, _mm_mul_pd(coord_vec[2], _mm_set_pd(tmp_dot[1])));
+                _mm_storeu_pd(amplitudes_+i*n_rec*3+(r_ind+1)*3+1, _mm_mul_pd(coord_vec[2], _mm_set1_pd(tmp_dot[1])));
             }
         }         
     }

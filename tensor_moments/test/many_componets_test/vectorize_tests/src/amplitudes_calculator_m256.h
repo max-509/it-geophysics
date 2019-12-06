@@ -150,14 +150,14 @@ void AmplitudesCalculatorM256<float>::realize_calculate() {
         __m256 coord_vec[3];
         __m256 G_P_vect[matrix_size];
         // ALIGNED(32) float coords[vector_dim*3];
-        ALIGNED(32) float coords_transposed[vector_dim*3];
-        ALIGNED(32) float G_P[matrix_size*vector_dim];
+        // ALIGNED(32) float coords_transposed[vector_dim*3];
+        // ALIGNED(32) float G_P[matrix_size*vector_dim];
         #pragma omp for collapse(2)
         for (ptrdiff_t i = 0; i < sources_count; ++i) {
             for (ptrdiff_t r_ind = 0; r_ind < n_rec-(n_rec%vector_dim); r_ind+=vector_dim) {
                 for (ptrdiff_t crd = 0; crd < 3; ++crd) {
-                    coord_vec[crd] = _mm256_sub_ps(_mm256_set_ps(rec_coords_[(r_ind+7)*3+i], rec_coords_[(r_ind+6)*3+i], rec_coords_[(r_ind+5)*3+i], rec_coords_[(r_ind+4)*3+i],
-                                                                rec_coords_[(r_ind+3)*3+i], rec_coords_[(r_ind+2)*3+i], rec_coords_[(r_ind+1)*3+i], rec_coords_[(r_ind)*3+i]
+                    coord_vec[crd] = _mm256_sub_ps(_mm256_set_ps(rec_coords_[(r_ind+7)*3+crd], rec_coords_[(r_ind+6)*3+crd], rec_coords_[(r_ind+5)*3+crd], rec_coords_[(r_ind+4)*3+crd],
+                                                                rec_coords_[(r_ind+3)*3+crd], rec_coords_[(r_ind+2)*3+crd], rec_coords_[(r_ind+1)*3+crd], rec_coords_[(r_ind)*3+crd]
                                                                 ), _mm256_set1_ps(sources_coords_[i*3+crd]));
                 }
 
@@ -173,17 +173,32 @@ void AmplitudesCalculatorM256<float>::realize_calculate() {
                 G_P_vect[4] = _mm256_div_ps(_mm256_mul_ps(coord_vec[0], coord_vec[2]), dist);
                 G_P_vect[5] = _mm256_div_ps(_mm256_mul_ps(coord_vec[1], coord_vec[2]), dist);
 
-                transpose_coord_vect(coord_vec, coords_transposed);
+                // transpose_coord_vect(coord_vec, coords_transposed);
 
+                // for (ptrdiff_t m = 0; m < matrix_size; ++m) {
+                //     _mm256_store_ps(G_P+m*vector_dim, G_P_vect[m]);
+                //     #pragma omp simd
+                //     for (ptrdiff_t v_s = 0; v_s < vector_dim; ++v_s) {
+                //         for (ptrdiff_t rec_comp = 0; rec_comp < 3; ++rec_comp) {
+                //             amplitudes_[i*n_rec*3+(r_ind+v_s)*3+rec_comp] += G_P[m*vector_dim+v_s]*coords_transposed[v_s*3+rec_comp]*tensor_matrix_[m];
+                //         }
+                //     }
+                // }
+
+                ALIGNED(32) float tmp_dot[8] = {};
                 for (ptrdiff_t m = 0; m < matrix_size; ++m) {
-                    _mm256_store_ps(G_P+m*vector_dim, G_P_vect[m]);
-                    #pragma omp simd
-                    for (ptrdiff_t v_s = 0; v_s < vector_dim; ++v_s) {
-                        for (ptrdiff_t rec_comp = 0; rec_comp < 3; ++rec_comp) {
-                            amplitudes_[i*n_rec*3+(r_ind+v_s)*3+rec_comp] += G_P[m*vector_dim+v_s]*coords_transposed[v_s*3+rec_comp]*tensor_matrix_[m];
-                        }
-                    }
+                    _mm256_store_ps(tmp_dot, _mm256_add_ps(_mm256_load_ps(tmp_dot), _mm256_mul_ps(G_P_vect[m], _mm256_set1_ps(tensor_matrix_[m]))));
                 }
+
+                __m256 extra_row = _mm256_setzero_ps();
+                _MM256_TRANSPOSE4_PS(coord_vec[0], coord_vec[1], coord_vec[2], extra_row);
+
+                for (ptrdiff_t ind = 0; ind < 3; ++ind) {
+                    _mm_storeu_ps(amplitudes_+i*n_rec*3+(r_ind+(ind*(vector_dim/4)))*3, _mm_mul_ps(_mm256_extractf128_ps(coord_vec[ind], 0), _mm_set1_ps(tmp_dot[ind*(vector_dim/4)])));
+                    _mm_storeu_ps(amplitudes_+i*n_rec*3+(r_ind+(ind*(vector_dim/4)+1))*3, _mm_mul_ps(_mm256_extractf128_ps(coord_vec[ind], 1), _mm_set1_ps(tmp_dot[ind*(vector_dim/4)+1])));
+                }
+                _mm_storeu_ps(amplitudes_+i*n_rec*3+r_ind*3+(3*(vector_dim/4)+0)*3, _mm_mul_ps(_mm256_extractf128_ps(extra_row, 0), _mm_set1_ps(tmp_dot[3*(vector_dim/4)])));
+                _mm_maskstore_ps(amplitudes_+i*n_rec*3+r_ind*3+(3*(vector_dim/4)+1)*3, mask_s, _mm_mul_ps(_mm256_extractf128_ps(extra_row, 1), _mm_set1_ps(tmp_dot[3*(vector_dim/4)+1])));
             }
         }
     }
@@ -236,17 +251,34 @@ void AmplitudesCalculatorM256<double>::realize_calculate() {
                 G_P_vect[4] = _mm256_div_pd(_mm256_mul_pd(coord_vec[0], coord_vec[2]), dist);
                 G_P_vect[5] = _mm256_div_pd(_mm256_mul_pd(coord_vec[1], coord_vec[2]), dist);
 
-                transpose_coord_vect(coord_vec, coords_transposed);
+                // transpose_coord_vect(coord_vec, coords_transposed);
 
+                // for (ptrdiff_t m = 0; m < matrix_size; ++m) {
+                //     _mm256_store_pd(G_P+m*vector_dim, G_P_vect[m]);
+                //     #pragma omp simd
+                //     for (ptrdiff_t v_s = 0; v_s < vector_dim; ++v_s) {
+                //         for (ptrdiff_t rec_comp = 0; rec_comp < 3; ++rec_comp) {
+                //             amplitudes_[i*n_rec*3+(r_ind+v_s)*3+rec_comp] += G_P[m*vector_dim+v_s]*coords_transposed[v_s*3+rec_comp]*tensor_matrix_[m];
+                //         }
+                //     }
+                // }
+
+                ALIGNED(32) double tmp_dot[4] = {};
                 for (ptrdiff_t m = 0; m < matrix_size; ++m) {
-                    _mm256_store_pd(G_P+m*vector_dim, G_P_vect[m]);
-                    #pragma omp simd
-                    for (ptrdiff_t v_s = 0; v_s < vector_dim; ++v_s) {
-                        for (ptrdiff_t rec_comp = 0; rec_comp < 3; ++rec_comp) {
-                            amplitudes_[i*n_rec*3+(r_ind+v_s)*3+rec_comp] += G_P[m*vector_dim+v_s]*coords_transposed[v_s*3+rec_comp]*tensor_matrix_[m];
-                        }
-                    }
+                    _mm256_store_pd(tmp_dot, _mm256_add_pd(_mm256_load_pd(tmp_dot), _mm256_mul_pd(G_P_vect[m], _mm256_set1_pd(tensor_matrix_[m]))));
                 }
+
+                __m256d extra_row = _mm256_setzero_pd();
+                _MM256_TRANSPOSE4_PD(coord_vec[0], coord_vec[1], coord_vec[2], extra_row);
+                coord_vec[0] = _mm256_mul_pd(coord_vec[0], _mm256_set1_pd(tmp_dot[0]));
+                coord_vec[1] = _mm256_mul_pd(coord_vec[1], _mm256_set1_pd(tmp_dot[1]));
+                coord_vec[2] = _mm256_mul_pd(coord_vec[2], _mm256_set1_pd(tmp_dot[2]));
+                extra_row = _mm256_mul_pd(extra_row, _mm256_set1_pd(tmp_dot[3]));
+
+                for (ptrdiff_t shift = 0; shift < 3; ++shift) {
+                    _mm256_storeu_pd(amplitudes_+i*n_rec*3+(r_ind+shift)*3, coord_vec[shift]);   
+                }
+                _mm256_maskstore_pd(amplitudes_+i*n_rec*3+(r_ind+3)*3, mask_d, extra_row);   
             }
         }         
     }

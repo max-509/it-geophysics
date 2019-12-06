@@ -35,7 +35,7 @@ int main(int argc, char const *argv[]) {
 	float *sources = new float[n_sources*3];
 	float *rec = new float[n_rec*3];
 	float *tensor_matrix = new float[6];
-	float *amplitudes = new float[n_sources*n_rec*3];
+	__attribute__((aligned(16))) float *amplitudes = new float[n_sources*n_rec*3];
 
 	double t1 = omp_get_wtime();
 	AmplitudesComputerType<float> computer(sources, rec, tensor_matrix, n_sources, n_rec, amplitudes);
