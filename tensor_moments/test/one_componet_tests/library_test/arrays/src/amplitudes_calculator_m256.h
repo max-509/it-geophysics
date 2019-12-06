@@ -102,7 +102,7 @@ void AmplitudesCalculatorM256<double>::realize_calculate() {
         for (ptrdiff_t i = 0; i < sources_count; ++i) {
             for (ptrdiff_t r_ind = 0; r_ind < n_rec-(n_rec%vector_dim); r_ind+=vector_dim) {
                 for (ptrdiff_t crd = 0; crd < 3; ++crd) {
-                    coord_vec[crd] = _mm256_sub_pd(_mm256_set_pd(rec_coords_[(r_ind+3)*3+i], rec_coords_[(r_ind+2)*3+i], rec_coords_[(r_ind+1)*3+i], rec_coords_[(r_ind)*3+i]), _mm256_set1_pd(sources_coords_[i*3+crd]));
+                    coord_vec[crd] = _mm256_sub_pd(_mm256_set_pd(rec_coords_[(r_ind+3)*3+crd], rec_coords_[(r_ind+2)*3+crd], rec_coords_[(r_ind+1)*3+crd], rec_coords_[(r_ind)*3+crd]), _mm256_set1_pd(sources_coords_[i*3+crd]));
                 }
 
                 __m256d dist = vect_calc_norm(coord_vec[0], coord_vec[1], coord_vec[2]);

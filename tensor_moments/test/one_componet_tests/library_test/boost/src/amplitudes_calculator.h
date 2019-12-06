@@ -53,6 +53,7 @@ private:
 	                G_P[4] = 2*coord_vect[2]*coord_vect[0]*coord_vect[2]/dist;
 	                G_P[5] = 2*coord_vect[2]*coord_vect[0]*coord_vect[1]/dist;
 	                
+	                #pragma omp simd
 	                for (size_t m = 0; m < matrix_size; ++m) {
                         amplitudes(Array2D_ind{{i, r_ind}}) += (G_P[m])*tensor_matrix[m];
 	                }

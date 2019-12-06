@@ -50,7 +50,7 @@ void compute(const Array2D<T> &data, const Array2D<T> &rec_coords, const Array2D
                     for (ptrdiff_t r_ind = bl_r; r_ind < std::min(bl_r+rec_block_size, n_rec); ++r_ind) {
                         ptrdiff_t ind = sources_times(i, r_ind);
                         for (ptrdiff_t t = bl_t; t < std::min(bl_t+samples_block_size, n_samples-ind); ++t) {
-                            result_ata[i*n_samples+t] += data(r_ind, ind+t)*amplitudes(i, r_ind);
+                            result_data[i*n_samples+t] += data(r_ind, ind+t)*amplitudes(i, r_ind);
                         }
                     }
                 }

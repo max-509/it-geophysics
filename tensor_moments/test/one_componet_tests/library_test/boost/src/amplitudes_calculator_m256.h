@@ -59,29 +59,20 @@ void AmplitudesCalculatorM256<float>::realize_calculate() {
     size_t sources_count = sources_coords_.shape()[0];
     size_t matrix_size = tensor_matrix_.shape()[0];
     size_t vector_dim = sizeof(__m256)/sizeof(float);
-    std::unique_ptr<__m256[], decltype(free)*> vect_rec_coord{reinterpret_cast<__m256*>(aligned_alloc(sizeof(__m256), sizeof(__m256)*(n_rec/vector_dim)*3)), free};
 
     #pragma omp parallel
     {
-        #pragma omp for collapse(2)
-        for (size_t r_ind = 0; r_ind < n_rec-(n_rec%vector_dim); r_ind+=vector_dim) {
-            for (size_t i = 0; i < 3; ++i) {
-                vect_rec_coord[(r_ind/vector_dim)*3+i] = _mm256_set_ps(
-                                                                       rec_coords_(Array2D_ind{{r_ind+7, i}}), rec_coords_(Array2D_ind{{r_ind+6, i}}), 
-                                                                       rec_coords_(Array2D_ind{{r_ind+5, i}}), rec_coords_(Array2D_ind{{r_ind+4, i}}),
-                                                                       rec_coords_(Array2D_ind{{r_ind+3, i}}), rec_coords_(Array2D_ind{{r_ind+2, i}}), 
-                                                                       rec_coords_(Array2D_ind{{r_ind+1, i}}), rec_coords_(Array2D_ind{{r_ind, i}})
-                                                                      );
-            }
-        }
-
         __m256 coord_vec[3];
         __m256 G_P_vect[matrix_size];
         #pragma omp for collapse(2)
         for (size_t i = 0; i < sources_count; ++i) {
             for (size_t r_ind = 0; r_ind < n_rec-(n_rec%vector_dim); r_ind+=vector_dim) {
                 for (size_t crd = 0; crd < 3; ++crd) {
-                    coord_vec[crd] = _mm256_sub_ps(vect_rec_coord[(r_ind/vector_dim)*3+crd], _mm256_set1_ps(sources_coords_(Array2D_ind{{i, crd}})));
+                    coord_vec[crd] = _mm256_sub_ps(_mm256_set_ps(rec_coords_(Array2D_ind{{r_ind+7, crd}}), rec_coords_(Array2D_ind{{r_ind+6, crd}}), 
+                                                               rec_coords_(Array2D_ind{{r_ind+5, crd}}), rec_coords_(Array2D_ind{{r_ind+4, crd}}),
+                                                               rec_coords_(Array2D_ind{{r_ind+3, crd}}), rec_coords_(Array2D_ind{{r_ind+2, crd}}), 
+                                                               rec_coords_(Array2D_ind{{r_ind+1, crd}}), rec_coords_(Array2D_ind{{r_ind, crd}})
+                                                                ), _mm256_set1_ps(sources_coords_(Array2D_ind{{i, crd}})));
                 }
 
                 __m256 dist = vect_calc_norm(coord_vec[0], coord_vec[1], coord_vec[2]);
@@ -110,27 +101,18 @@ void AmplitudesCalculatorM256<double>::realize_calculate() {
     size_t sources_count = sources_coords_.shape()[0];
     size_t matrix_size = tensor_matrix_.shape()[0];
     size_t vector_dim = sizeof(__m256d)/sizeof(double);
-    std::unique_ptr<__m256d[], decltype(free)*> vect_rec_coord{reinterpret_cast<__m256d*>(aligned_alloc(sizeof(__m256d), sizeof(__m256d)*(n_rec/vector_dim)*3)), free};
 
     #pragma omp parallel
     {
-        #pragma omp for collapse(2)
-        for (size_t r_ind = 0; r_ind < n_rec-(n_rec%vector_dim); r_ind+=vector_dim) {
-            for (size_t i = 0; i < 3; ++i) {
-                vect_rec_coord[(r_ind/vector_dim)*3+i] = _mm256_set_pd(
-                                                                       rec_coords_(Array2D_ind{{r_ind+3, i}}), rec_coords_(Array2D_ind{{r_ind+2, i}}), 
-                                                                       rec_coords_(Array2D_ind{{r_ind+1, i}}), rec_coords_(Array2D_ind{{r_ind, i}})
-                                                                      );
-            }
-        }
-
         __m256d coord_vec[3];
         __m256d G_P_vect[matrix_size];
         #pragma omp for collapse(2)
         for (size_t i = 0; i < sources_count; ++i) {
             for (size_t r_ind = 0; r_ind < n_rec-(n_rec%vector_dim); r_ind+=vector_dim) {
                 for (size_t crd = 0; crd < 3; ++crd) {
-                    coord_vec[crd] = _mm256_sub_pd(vect_rec_coord[(r_ind/vector_dim)*3+crd], _mm256_set1_pd(sources_coords_(Array2D_ind{{i, crd}})));
+                    coord_vec[crd] = _mm256_sub_pd(_mm256_set_pd(rec_coords_(Array2D_ind{{r_ind+3, crd}}), rec_coords_(Array2D_ind{{r_ind+2, crd}}), 
+                                                               rec_coords_(Array2D_ind{{r_ind+1, crd}}), rec_coords_(Array2D_ind{{r_ind, crd}})
+                                                                ), _mm256_set1_pd(sources_coords_(Array2D_ind{{i, crd}})));
                 }
 
                 __m256d dist = vect_calc_norm(coord_vec[0], coord_vec[1], coord_vec[2]);
