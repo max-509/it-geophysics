@@ -1,0 +1,22 @@
+Recs: 2000, Srcs: 4000, Smpls: 10000, Time: 11.39
+Recs: 2000, Srcs: 8000, Smpls: 10000, Time: 23.08
+Recs: 2000, Srcs: 12000, Smpls: 10000, Time: 33.80
+Recs: 2000, Srcs: 16000, Smpls: 10000, Time: 44.98
+Recs: 2000, Srcs: 19000, Smpls: 10000, Time: 53.23
+
+Recs: 4000, Srcs: 4000, Smpls: 10000, Time: 22.70
+Recs: 4000, Srcs: 8000, Smpls: 10000, Time: 44.74
+Recs: 4000, Srcs: 12000, Smpls: 10000, Time: 69.55
+Recs: 4000, Srcs: 16000, Smpls: 10000, Time: 89.32
+Recs: 4000, Srcs: 19000, Smpls: 10000, Time: 105.57
+
+Recs: 2000, Srcs: 4000, Smpls: 10000, Time: 11.37
+Recs: 2000, Srcs: 4000, Smpls: 20000, Time: 23.68
+Recs: 2000, Srcs: 4000, Smpls: 30000, Time: 36.64
+Recs: 2000, Srcs: 4000, Smpls: 40000, Time: 49.16
+Recs: 2000, Srcs: 4000, Smpls: 50000, Time: 61.99
+Recs: 2000, Srcs: 4000, Smpls: 60000, Time: 75.06
+Recs: 2000, Srcs: 4000, Smpls: 70000, Time: 89.20
+Recs: 2000, Srcs: 4000, Smpls: 80000, Time: 104.87
+Recs: 2000, Srcs: 4000, Smpls: 90000, Time: 123.98
+Recs: 2000, Srcs: 4000, Smpls: 100000, Time: 150.64

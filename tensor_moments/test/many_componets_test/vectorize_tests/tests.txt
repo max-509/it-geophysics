@@ -1,0 +1,17 @@
+
+Recs: 10000, Srcs: 20000, Time: 11.90
+Recs: 10000, Srcs: 20000, Time: 12.85
+Recs: 10000, Srcs: 20000, Time: 11.71
+Recs: 10000, Srcs: 20000, Time: 11.93
+Recs: 10000, Srcs: 20000, Time: 12.55
+Recs: 10000, Srcs: 20000, Time: 11.37
+Recs: 10000, Srcs: 20000, Time: 12.09
+Recs: 10000, Srcs: 20000, Time: 12.55
+Recs: 10000, Srcs: 20000, Time: 11.36
+Recs: 10000, Srcs: 20000, Time: 13.29
+Recs: 10000, Srcs: 20000, Time: 12.72
+Recs: 10000, Srcs: 20000, Time: 11.37
+Recs: 10000, Srcs: 20000, Time: 10.20
+Recs: 10000, Srcs: 20000, Time: 10.20
+Recs: 10000, Srcs: 20000, Time: 8.48
+Recs: 10000, Srcs: 20000, Time: 6.55

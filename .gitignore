@@ -3,3 +3,8 @@
 *.ipynb_checkpoints/
 *build/
 *.bin
+parallel/
+tensor_moments/test/correct_tests/
+serial/
+tensor_moments/test/times_tests/
+tensor_moments/test/pattern_tests/
