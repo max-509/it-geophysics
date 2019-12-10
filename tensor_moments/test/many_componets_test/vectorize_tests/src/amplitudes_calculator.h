@@ -40,11 +40,13 @@ private:
 	                G_P[4] = 2*coord_vect[0]*coord_vect[2]/dist;
 	                G_P[5] = 2*coord_vect[0]*coord_vect[1]/dist;
 	                
+	                T tmp_ampl = 0.;
 	                #pragma omp simd
 	                for (ptrdiff_t rec_comp = 0; rec_comp < 3; ++rec_comp) {
 	                	for (ptrdiff_t m = 0; m < matrix_size; ++m) {
-                        	amplitudes[i*n_rec*3+r_ind*3+rec_comp] += (G_P[m]*coord_vect[rec_comp])*tensor_matrix[m];
+                        	 tmp_ampl += (G_P[m]*coord_vect[rec_comp])*tensor_matrix[m];
 	                	}
+	                	amplitudes[i*n_rec*3+r_ind*3+rec_comp] = tmp_ampl;
 	                }
 	            }
 	        }         

@@ -169,9 +169,9 @@ void AmplitudesCalculatorM256<float>::realize_calculate() {
                     G_P_vect[crd] = _mm256_div_ps(_mm256_mul_ps(coord_vec[crd], coord_vec[crd]), dist);
                 }
 
-                G_P_vect[3] = _mm256_div_ps(_mm256_mul_ps(coord_vec[0], coord_vec[1]), dist);
-                G_P_vect[4] = _mm256_div_ps(_mm256_mul_ps(coord_vec[0], coord_vec[2]), dist);
-                G_P_vect[5] = _mm256_div_ps(_mm256_mul_ps(coord_vec[1], coord_vec[2]), dist);
+                G_P_vect[3] = _mm256_div_ps(_mm256_mul_ps(_mm256_mul_ps(coord_vec[1], coord_vec[2]), _mm256_set1_ps(2.)), dist);
+                G_P_vect[4] = _mm256_div_ps(_mm256_mul_ps(_mm256_mul_ps(coord_vec[0], coord_vec[2]), _mm256_set1_ps(2.)), dist);
+                G_P_vect[5] = _mm256_div_ps(_mm256_mul_ps(_mm256_mul_ps(coord_vec[0], coord_vec[1]), _mm256_set1_ps(2.)), dist);
 
                 // transpose_coord_vect(coord_vec, coords_transposed);
 
@@ -253,9 +253,9 @@ void AmplitudesCalculatorM256<double>::realize_calculate() {
                     G_P_vect[crd] = _mm256_div_pd(_mm256_mul_pd(coord_vec[crd], coord_vec[crd]), dist);
                 }
 
-                G_P_vect[3] = _mm256_div_pd(_mm256_mul_pd(coord_vec[0], coord_vec[1]), dist);
-                G_P_vect[4] = _mm256_div_pd(_mm256_mul_pd(coord_vec[0], coord_vec[2]), dist);
-                G_P_vect[5] = _mm256_div_pd(_mm256_mul_pd(coord_vec[1], coord_vec[2]), dist);
+                G_P_vect[3] = _mm256_div_pd(_mm256_mul_pd(_mm256_mul_pd(coord_vec[1], coord_vec[2]), _mm256_set1_pd(2.)), dist);
+                G_P_vect[4] = _mm256_div_pd(_mm256_mul_pd(_mm256_mul_pd(coord_vec[0], coord_vec[2]), _mm256_set1_pd(2.)), dist);
+                G_P_vect[5] = _mm256_div_pd(_mm256_mul_pd(_mm256_mul_pd(coord_vec[0], coord_vec[1]), _mm256_set1_pd(2.)), dist);
 
                 // transpose_coord_vect(coord_vec, coords_transposed);
 

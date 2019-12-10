@@ -1,0 +1,20 @@
+float
+
+Recs: 10000, Srcs: 40000, Time: 9.14
+Recs: 10000, Srcs: 80000, Time: 18.25
+Recs: 10000, Srcs: 120000, Time: 27.50
+Recs: 10000, Srcs: 160000, Time: 36.55
+Recs: 10000, Srcs: 190000, Time: 43.38
+Recs: 20000, Srcs: 40000, Time: 18.13
+Recs: 20000, Srcs: 80000, Time: 36.24
+Recs: 20000, Srcs: 120000, Time: 54.36
+Recs: 20000, Srcs: 160000, Time: 74.06
+Recs: 20000, Srcs: 190000, Time: 89.01
+
+double
+
+Recs: 10000, Srcs: 40000, Time: 9.17
+Recs: 10000, Srcs: 80000, Time: 18.10
+Recs: 10000, Srcs: 120000, Time: 27.08
+Recs: 10000, Srcs: 160000, Time: 38.06
+Recs: 10000, Srcs: 190000, Time: 46.42

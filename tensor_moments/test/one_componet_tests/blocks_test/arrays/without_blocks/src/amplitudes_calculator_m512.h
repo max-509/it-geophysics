@@ -75,9 +75,9 @@ void AmplitudesCalculatorM512<float>::realize_calculate() {
                     G_P_vect[crd] = _mm512_div_ps(_mm512_mul_ps(_mm512_set1_ps(tensor_matrix_[crd]), _mm512_mul_ps(coord_vec[2], _mm512_mul_ps(coord_vec[crd], coord_vec[crd]), dist)));
                 }
 
-                G_P_vect[3] = _mm512_div_ps(_mm512_mul_ps(_mm512_set1_ps(tensor_matrix_[3]), _mm512_mul_ps(coord_vec[2], _mm512_mul_ps(coord_vec[1], coord_vec[2]), dist)));
-                G_P_vect[4] = _mm512_div_ps(_mm512_mul_ps(_mm512_set1_ps(tensor_matrix_[4]), _mm512_mul_ps(coord_vec[2], _mm512_mul_ps(coord_vec[0], coord_vec[2]), dist)));
-                G_P_vect[5] = _mm512_div_ps(_mm512_mul_ps(_mm512_set1_ps(tensor_matrix_[5]), _mm512_mul_ps(coord_vec[2], _mm512_mul_ps(coord_vec[0], coord_vec[1]), dist)));
+                G_P_vect[3] = _mm512_div_ps(_mm512_mul_ps(_mm512_mul_ps(_mm512_set1_ps(tensor_matrix_[3]), _mm512_mul_ps(coord_vec[2], _mm512_mul_ps(coord_vec[1], coord_vec[2]))), _mm512_set1_ps(2.)), dist);
+                G_P_vect[4] = _mm512_div_ps(_mm512_mul_ps(_mm512_mul_ps(_mm512_set1_ps(tensor_matrix_[4]), _mm512_mul_ps(coord_vec[2], _mm512_mul_ps(coord_vec[0], coord_vec[2]))), _mm512_set1_ps(2.)), dist);
+                G_P_vect[5] = _mm512_div_ps(_mm512_mul_ps(_mm512_mul_ps(_mm512_set1_ps(tensor_matrix_[5]), _mm512_mul_ps(coord_vec[2], _mm512_mul_ps(coord_vec[0], coord_vec[1]))), _mm512_set1_ps(2.)), dist);
 
                 for (ptrdiff_t m = 0; m < matrix_size; ++m) {
                     _mm512_storeu_ps(amplitudes_+i*n_rec+r_ind, _mm512_add_ps(_mm512_loadu_ps(amplitudes_+i*n_rec+r_ind), G_P_vect[m]));
@@ -113,9 +113,9 @@ void AmplitudesCalculatorM512<double>::realize_calculate() {
                     G_P_vect[crd] = _mm512_div_pd(_mm512_mul_pd(_mm512_set1_pd(tensor_matrix_[crd]), _mm5_mul_pd(coord_vec[2], _mm512_mul_pd(coord_vec[crd], coord_vec[crd]))), dist);
                 }
 
-                G_P_vect[3] = _mm512_div_pd(_mm512_mul_pd(_mm512_set1_pd(tensor_matrix_[3]), _mm512_mul_pd(coord_vec[2], _mm512_mul_pd(coord_vec[1], coord_vec[2]))), dist);
-                G_P_vect[4] = _mm512_div_pd(_mm512_mul_pd(_mm512_set1_pd(tensor_matrix_[4]), _mm512_mul_pd(coord_vec[2], _mm512_mul_pd(coord_vec[0], coord_vec[2]))), dist);
-                G_P_vect[5] = _mm512_div_pd(_mm512_mul_pd(_mm512_set1_pd(tensor_matrix_[5]), _mm512_mul_pd(coord_vec[2], _mm512_mul_pd(coord_vec[0], coord_vec[1]))), dist);
+                G_P_vect[3] = _mm512_div_pd(_mm512_mul_pd(_mm512_mul_pd(_mm512_set1_pd(tensor_matrix_[3]), _mm512_mul_pd(coord_vec[2], _mm512_mul_pd(coord_vec[1], coord_vec[2]))), _mm512_set1_pd(2.)), dist);
+                G_P_vect[4] = _mm512_div_pd(_mm512_mul_pd(_mm512_mul_pd(_mm512_set1_pd(tensor_matrix_[4]), _mm512_mul_pd(coord_vec[2], _mm512_mul_pd(coord_vec[0], coord_vec[2]))), _mm512_set1_pd(2.)), dist);
+                G_P_vect[5] = _mm512_div_pd(_mm512_mul_pd(_mm512_mul_pd(_mm512_set1_pd(tensor_matrix_[5]), _mm512_mul_pd(coord_vec[2], _mm512_mul_pd(coord_vec[0], coord_vec[1]))), _mm512_set1_pd(2.)), dist);
 
                 for (ptrdiff_t m = 0; m < matrix_size; ++m) {
                     _mm512_storeu_pd(amplitudes_+i*n_rec+r_ind, _mm512_add_pd(_mm512_loadu_pd(amplitudes_+i*n_rec+r_ind), G_P_vect[m]));

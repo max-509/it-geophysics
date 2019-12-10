@@ -72,9 +72,10 @@ void AmplitudesCalculatorM256<float>::realize_calculate() {
                     G_P_vect[crd] = _mm256_div_ps(_mm256_mul_ps(_mm256_set1_ps(tensor_matrix_[crd]), _mm256_mul_ps(coord_vec[2], _mm256_mul_ps(coord_vec[crd], coord_vec[crd]))), dist);
                 }
 
-                G_P_vect[3] = _mm256_div_ps(_mm256_mul_ps(_mm256_set1_ps(tensor_matrix_[3]), _mm256_mul_ps(coord_vec[2], _mm256_mul_ps(coord_vec[1], coord_vec[2]))), dist);
-                G_P_vect[4] = _mm256_div_ps(_mm256_mul_ps(_mm256_set1_ps(tensor_matrix_[4]), _mm256_mul_ps(coord_vec[2], _mm256_mul_ps(coord_vec[0], coord_vec[2]))), dist);
-                G_P_vect[5] = _mm256_div_ps(_mm256_mul_ps(_mm256_set1_ps(tensor_matrix_[5]), _mm256_mul_ps(coord_vec[2], _mm256_mul_ps(coord_vec[0], coord_vec[1]))), dist);
+                G_P_vect[3] = _mm256_div_ps(_mm256_mul_ps(_mm256_mul_ps(_mm256_set1_ps(tensor_matrix_[3]), _mm256_mul_ps(coord_vec[2], _mm256_mul_ps(coord_vec[1], coord_vec[2]))), _mm256_set1_ps(2.)), dist);
+                G_P_vect[4] = _mm256_div_ps(_mm256_mul_ps(_mm256_mul_ps(_mm256_set1_ps(tensor_matrix_[4]), _mm256_mul_ps(coord_vec[2], _mm256_mul_ps(coord_vec[0], coord_vec[2]))), _mm256_set1_ps(2.)), dist);
+                G_P_vect[5] = _mm256_div_ps(_mm256_mul_ps(_mm256_mul_ps(_mm256_set1_ps(tensor_matrix_[5]), _mm256_mul_ps(coord_vec[2], _mm256_mul_ps(coord_vec[0], coord_vec[1]))), _mm256_set1_ps(2.)), dist);
+
 
                 for (ptrdiff_t m = 0; m < matrix_size; ++m) {
                     _mm256_storeu_ps(&amplitudes_(i, r_ind), _mm256_add_ps(_mm256_loadu_ps(&amplitudes_(i, r_ind)), G_P_vect[m]));
@@ -111,9 +112,9 @@ void AmplitudesCalculatorM256<double>::realize_calculate() {
                     G_P_vect[crd] = _mm256_div_pd(_mm256_mul_pd(_mm256_set1_pd(tensor_matrix_[crd]), _mm256_mul_pd(coord_vec[2], _mm256_mul_pd(coord_vec[crd], coord_vec[crd]))), dist);
                 }
 
-                G_P_vect[3] = _mm256_div_pd(_mm256_mul_pd(_mm256_set1_pd(tensor_matrix_[3]), _mm256_mul_pd(coord_vec[2], _mm256_mul_pd(coord_vec[1], coord_vec[2]))), dist);
-                G_P_vect[4] = _mm256_div_pd(_mm256_mul_pd(_mm256_set1_pd(tensor_matrix_[4]), _mm256_mul_pd(coord_vec[2], _mm256_mul_pd(coord_vec[0], coord_vec[2]))), dist);
-                G_P_vect[5] = _mm256_div_pd(_mm256_mul_pd(_mm256_set1_pd(tensor_matrix_[5]), _mm256_mul_pd(coord_vec[2], _mm256_mul_pd(coord_vec[0], coord_vec[1]))), dist);
+                G_P_vect[3] = _mm256_div_pd(_mm256_mul_pd(_mm256_mul_pd(_mm256_set1_pd(tensor_matrix_[3]), _mm256_mul_pd(coord_vec[2], _mm256_mul_pd(coord_vec[1], coord_vec[2]))), _mm256_set1_pd(2.)), dist);
+                G_P_vect[4] = _mm256_div_pd(_mm256_mul_pd(_mm256_mul_pd(_mm256_set1_pd(tensor_matrix_[4]), _mm256_mul_pd(coord_vec[2], _mm256_mul_pd(coord_vec[0], coord_vec[2]))), _mm256_set1_pd(2.)), dist);
+                G_P_vect[5] = _mm256_div_pd(_mm256_mul_pd(_mm256_mul_pd(_mm256_set1_pd(tensor_matrix_[5]), _mm256_mul_pd(coord_vec[2], _mm256_mul_pd(coord_vec[0], coord_vec[1]))), _mm256_set1_pd(2.)), dist);
 
                 for (ptrdiff_t m = 0; m < matrix_size; ++m) {
                     _mm256_storeu_pd(&amplitudes_(i, r_ind), _mm256_add_pd(_mm256_loadu_pd(&amplitudes_(i, r_ind)), G_P_vect[m]));

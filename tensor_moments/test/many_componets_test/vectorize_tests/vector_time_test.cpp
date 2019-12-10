@@ -32,13 +32,13 @@ int main(int argc, char const *argv[]) {
 	ptrdiff_t n_rec = atol(argv[1]);
 	ptrdiff_t n_sources = atol(argv[2]);
 
-	float *sources = new float[n_sources*3];
-	float *rec = new float[n_rec*3];
-	float *tensor_matrix = new float[6];
- 	float *amplitudes = new float[n_sources*n_rec*3];
+	double *sources = new double[n_sources*3];
+	double *rec = new double[n_rec*3];
+	double *tensor_matrix = new double[6];
+ 	double *amplitudes = new double[n_sources*n_rec*3];
 
 	double t1 = omp_get_wtime();
-	AmplitudesComputerType<float> computer(sources, rec, tensor_matrix, n_sources, n_rec, amplitudes);
+	AmplitudesComputerType<double> computer(sources, rec, tensor_matrix, n_sources, n_rec, amplitudes);
 	computer.calculate();
 	double t2 = omp_get_wtime();
 
