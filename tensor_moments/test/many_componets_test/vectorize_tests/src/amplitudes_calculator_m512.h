@@ -82,56 +82,56 @@ private:
 	}
 
     inline void transpose_coord_vect(const float *src_vect, float *dest_arr) {
-        // int count_part = (sizeof(__m512)/sizeof(float))/4;
-        // __m512 srcs[4];
+        int count_part = (sizeof(__m512)/sizeof(float))/4;
+        __m512 srcs[4];
 
-        // srcs[0] = _mm512_load_ps(src_vect);
-        // srcs[1] = _mm512_load_ps(src_vect+16);
-        // srcs[2] = _mm512_load_ps(src_vect+24);
-        // srcs[3] = _mm512_setzero_ps();
-        // _MM512_TRANSPOSE4_PS(srcs[0], srcs[1], srcs[2], srcs[3]);
-        // for (ptrdiff_t ind = 0; ind < 4; ++ind) {
-        //     for (int part_ind = 0; part_ind < count_part; ++part_ind) {
-        //         _mm_maskstore_ps(dest_arr+(ind*count_part+part_ind)*3, mask_s, _mm512_extractf32x4_ps(srcs[ind], part_ind));
-        //     }
-        // }
-
-        ptrdiff_t vector_dim = sizeof(__m512)/sizeof(float);
-        ALIGNED(64) long long indeces[vector_dim];
-
-        for (ptrdiff_t crd = 0; crd < 3; ++crd) {
-            #pragma omp simd
-            for (ptrdiff_t v_s = 0; v_s < vector_dim; ++v_s) {
-                indeces[v_s] = vector_dim*((crd*vector_dim+v_s)%3)+(crd*vector_dim+v_s)/3;
+        srcs[0] = _mm512_load_ps(src_vect);
+        srcs[1] = _mm512_load_ps(src_vect+16);
+        srcs[2] = _mm512_load_ps(src_vect+24);
+        srcs[3] = _mm512_setzero_ps();
+        _MM512_TRANSPOSE4_PS(srcs[0], srcs[1], srcs[2], srcs[3]);
+        for (ptrdiff_t ind = 0; ind < 4; ++ind) {
+            for (int part_ind = 0; part_ind < count_part; ++part_ind) {
+                _mm_maskstore_ps(dest_arr+(ind*count_part+part_ind)*3, mask_s, _mm512_extractf32x4_ps(srcs[ind], part_ind));
             }
-            _mm512_store_ps(dest_arr+crd*vector_dim, _mm512_insertf32x8(_mm512_castps256_ps512(_mm512_i64gather_ps(_mm512_load_si512((__m512i*)(indeces)), src_vect, 1)), _mm512_i64gather_ps(_mm512_load_si512((__m512i*)(indeces+vector_dim/2)), src_vect, 1), 1));
         }
+
+        // ptrdiff_t vector_dim = sizeof(__m512)/sizeof(float);
+        // ALIGNED(64) long long indeces[vector_dim];
+
+        // for (ptrdiff_t crd = 0; crd < 3; ++crd) {
+        //     #pragma omp simd
+        //     for (ptrdiff_t v_s = 0; v_s < vector_dim; ++v_s) {
+        //         indeces[v_s] = vector_dim*((crd*vector_dim+v_s)%3)+(crd*vector_dim+v_s)/3;
+        //     }
+        //     _mm512_store_ps(dest_arr+crd*vector_dim, _mm512_insertf32x8(_mm512_castps256_ps512(_mm512_i64gather_ps(_mm512_load_si512((__m512i*)(indeces)), src_vect, 1)), _mm512_i64gather_ps(_mm512_load_si512((__m512i*)(indeces+vector_dim/2)), src_vect, 1), 1));
+        // }
     }
 
     inline void transpose_coord_vect(const double *src_vect, double *dest_arr) {
-        // int count_part = (sizeof(__m512d)/sizeof(double))/4;
-        // __m512d srcs[4];
-        // srcs[0] = _mm512_load_pd(src_vect);
-        // srcs[1] = _mm512_load_pd(src_vect+8);
-        // srcs[2] = _mm512_load_pd(src_vect+16);
-        // srcs[3] = _mm512_setzero_pd();
-        // _MM512_TRANSPOSE4_PD(srcs[0], srcs[1], srcs[2], srcs[3]);
-        // for (ptrdiff_t ind = 0; ind < 4; ++ind) {
-        //     for (int part_ind = 0; part_ind < count_part; ++part_ind) {
-        //          _mm256_maskstore_pd(dest_arr+(ind*count_part+part_ind)*3, mask_d, _mm512_extractf64x4_pd(rows[ind], part_ind)); 
-        //     }
-        // }
-
-        ptrdiff_t vector_dim = sizeof(__m512d)/sizeof(double);
-        ALIGNED(64) long long indeces[vector_dim];
-
-        for (ptrdiff_t crd = 0; crd < 3; ++crd) {
-            #pragma omp simd
-            for (ptrdiff_t v_s = 0; v_s < vector_dim; ++v_s) {
-                indeces[v_s] = vector_dim*((crd*vector_dim+v_s)%3)+(crd*vector_dim+v_s)/3;
+        int count_part = (sizeof(__m512d)/sizeof(double))/4;
+        __m512d srcs[4];
+        srcs[0] = _mm512_load_pd(src_vect);
+        srcs[1] = _mm512_load_pd(src_vect+8);
+        srcs[2] = _mm512_load_pd(src_vect+16);
+        srcs[3] = _mm512_setzero_pd();
+        _MM512_TRANSPOSE4_PD(srcs[0], srcs[1], srcs[2], srcs[3]);
+        for (ptrdiff_t ind = 0; ind < 4; ++ind) {
+            for (int part_ind = 0; part_ind < count_part; ++part_ind) {
+                 _mm256_maskstore_pd(dest_arr+(ind*count_part+part_ind)*3, mask_d, _mm512_extractf64x4_pd(rows[ind], part_ind)); 
             }
-            _mm512_store_pd(dest_arr+crd*vector_dim, _mm512_i64gather_pd(_mm512_load_si512((__m512i*)(indeces)), src_vect, 1));
-        }   
+        }
+
+        // ptrdiff_t vector_dim = sizeof(__m512d)/sizeof(double);
+        // ALIGNED(64) long long indeces[vector_dim];
+
+        // for (ptrdiff_t crd = 0; crd < 3; ++crd) {
+        //     #pragma omp simd
+        //     for (ptrdiff_t v_s = 0; v_s < vector_dim; ++v_s) {
+        //         indeces[v_s] = vector_dim*((crd*vector_dim+v_s)%3)+(crd*vector_dim+v_s)/3;
+        //     }
+        //     _mm512_store_pd(dest_arr+crd*vector_dim, _mm512_i64gather_pd(_mm512_load_si512((__m512i*)(indeces)), src_vect, 1));
+        // }   
     }
 
 };
@@ -153,30 +153,31 @@ void AmplitudesCalculatorM512<float>::realize_calculate() {
                     indeces[v_s] = (r_ind+v_s)*3+i;
                 }
                 vect_rec_coord[(r_ind/vector_dim)*3+i] = _mm512_insertf32x8(_mm512_castps256_ps512(_mm512_i64gather_ps(_mm512_load_si512((__m512i*)(indeces)), rec_coords_, 1)), _mm512_i64gather_ps(_mm512_load_si512((__m512i*)(indeces+vector_dim/2)), rec_coords_, 1), 1);
-                // vect_rec_coord[(r_ind/vector_dim)*3+i] = _mm512_set_ps(rec_coords_[(r_ind+15)*3+i], rec_coords_[(r_ind+14)*3+i], rec_coords_[(r_ind+13)*3+i], rec_coords_[(r_ind+12)*3+i],
-                //                                                        rec_coords_[(r_ind+11)*3+i], rec_coords_[(r_ind+10)*3+i], rec_coords_[(r_ind+9)*3+i], rec_coords_[(r_ind+8)*3+i],
-                //                                                        rec_coords_[(r_ind+7)*3+i], rec_coords_[(r_ind+6)*3+i], rec_coords_[(r_ind+5)*3+i], rec_coords_[(r_ind+4)*3+i],
-                //                                                        rec_coords_[(r_ind+3)*3+i], rec_coords_[(r_ind+2)*3+i], rec_coords_[(r_ind+1)*3+i], rec_coords_[(r_ind)*3+i]);
+                vect_rec_coord[(r_ind/vector_dim)*3+i] = _mm512_set_ps(rec_coords_[(r_ind+15)*3+i], rec_coords_[(r_ind+14)*3+i], rec_coords_[(r_ind+13)*3+i], rec_coords_[(r_ind+12)*3+i],
+                                                                       rec_coords_[(r_ind+11)*3+i], rec_coords_[(r_ind+10)*3+i], rec_coords_[(r_ind+9)*3+i], rec_coords_[(r_ind+8)*3+i],
+                                                                       rec_coords_[(r_ind+7)*3+i], rec_coords_[(r_ind+6)*3+i], rec_coords_[(r_ind+5)*3+i], rec_coords_[(r_ind+4)*3+i],
+                                                                       rec_coords_[(r_ind+3)*3+i], rec_coords_[(r_ind+2)*3+i], rec_coords_[(r_ind+1)*3+i], rec_coords_[(r_ind)*3+i]);
             }
         }
 
         __m512 coord_vec[3];
         __m512 G_P_vect[matrix_size];
-        ALIGNED(64) float coords[vector_dim*3];
-        ALIGNED(64) float coords_transposed[vector_dim*3];
-        ALIGNED(64) float G_P[matrix_size*vector_dim];
+        // ALIGNED(64) float coords_transposed[vector_dim*3];
+        // ALIGNED(64) float G_P[matrix_size*vector_dim];
         // #pragma omp for collapse(2)
         for (ptrdiff_t i = 0; i < sources_count; ++i) {
             for (ptrdiff_t r_ind = 0; r_ind < n_rec-(n_rec%vector_dim); r_ind+=vector_dim) {
                 for (ptrdiff_t crd = 0; crd < 3; ++crd) {
-                    coord_vec[crd] = _mm512_sub_ps(vect_rec_coord[(r_ind/vector_dim)*3+crd], _mm512_set1_ps(sources_coords_[i*3+crd]));
+                    coord_vec[crd] = _mm512_sub_ps(_mm512_set_ps(rec_coords_[(r_ind+15)*3+crd], rec_coords_[(r_ind+14)*3crd], rec_coords_[(r_ind+13)*3+crd], rec_coords_[(r_ind+12)*3+crd],
+                                                               rec_coords_[(r_ind+11)*3+crd], rec_coords_[(r_ind+10)*3crd], rec_coords_[(r_ind+9)*3+crd], rec_coords_[(r_ind+8)*3+crd],
+                                                               rec_coords_[(r_ind+7)*3+crd], rec_coords_[(r_ind+6)*3+crd], rec_coords_[(r_ind+5)*3+crd], rec_coords_[(r_ind+4)*3+crd],
+                                                               rec_coords_[(r_ind+3)*3+crd], rec_coords_[(r_ind+2)*3+crd], rec_coords_[(r_ind+1)*3+crd], rec_coords_[(r_ind)*3+crd]), _mm512_set1_ps(sources_coords_[i*3+crd]));
                 }
 
                 __m512 dist = vect_calc_dist(coord_vec[0], coord_vec[1], coord_vec[2]);
 
                 for (ptrdiff_t crd = 0; crd < 3; ++crd) {
                     coord_vec[crd] = _mm512_div_ps(coord_vec[crd], dist);
-                    _mm512_store_ps(coords+crd*vector_dim, coord_vec[crd]);
                     G_P_vect[crd] = _mm512_div_ps(_mm512_mul_ps(coord_vec[crd], coord_vec[crd]), dist);
                 }
 
@@ -184,17 +185,39 @@ void AmplitudesCalculatorM512<float>::realize_calculate() {
                 G_P_vect[4] = _mm512_div_ps(_mm512_mul_ps(coord_vec[0], coord_vec[2]), dist);
                 G_P_vect[5] = _mm512_div_ps(_mm512_mul_ps(coord_vec[1], coord_vec[2]), dist);
 
-                transpose_coord_vect(coords, coords_transposed);
+                // transpose_coord_vect(coords, coords_transposed);
 
+                // for (ptrdiff_t m = 0; m < matrix_size; ++m) {
+                //     _mm512_store_ps(G_P+m*vector_dim, G_P_vect[m]);
+                //     // #pragma omp simd
+                //     for (ptrdiff_t v_s = 0; v_s < vector_dim; ++v_s) {
+                //         for (ptrdiff_t rec_comp = 0; rec_comp < 3; ++rec_comp) {
+                //             amplitudes_[i*n_rec*3+(r_ind+v_s)*3+rec_comp] += G_P[m*vector_dim+v_s]*coords_transposed[v_s*3+rec_comp]*tensor_matrix_[m];
+                //         }
+                //     }
+                // }
+
+                __m512 tmp_dot = _mm512_setzero_ps();
                 for (ptrdiff_t m = 0; m < matrix_size; ++m) {
-                    _mm512_store_ps(G_P+m*vector_dim, G_P_vect[m]);
-                    // #pragma omp simd
-                    for (ptrdiff_t v_s = 0; v_s < vector_dim; ++v_s) {
-                        for (ptrdiff_t rec_comp = 0; rec_comp < 3; ++rec_comp) {
-                            amplitudes_[i*n_rec*3+(r_ind+v_s)*3+rec_comp] += G_P[m*vector_dim+v_s]*coords_transposed[v_s*3+rec_comp]*tensor_matrix_[m];
-                        }
-                    }
+                    tmp_dot = _mm512_add_ps(tmp_dot, _mm512_mul_ps(G_P[m], _mm512_set1_ps(tensor_matrix_[m])));
                 }
+
+                coord_vec[0] = _mm512_mul_ps(coord_vec[0], tmp_dot);
+                coord_vec[1] = _mm512_mul_ps(coord_vec[1], tmp_dot);
+                coord_vec[2] = _mm512_mul_ps(coord_vec[2], tmp_dot);
+
+                __m512 tmp_coord_vect1 = coord_vec[0];
+                __m512 tmp_coord_vect2 = coord_vec[1];
+                __m512 extra_row = _mm512_mask_shuffle_ps(_mm512_permute_ps(coord_vec[0], 0x40), 0x7777, coord_vec[1], coord_vec[2], 0x2C);
+                coord_vec[0] = _mm512_mask_shuffle_ps(coord_vec[0], 0x7777, coord_vec[1], coord_vec[2], 0x14);
+                coord_vec[1] = _mm512_mask_shuffle_ps(coord_vec[1], 0x7777, coord_vec[2], tmp_coord_vect1, 0x1C);
+                coord_vec[1] = _mm512_mask_shuffle_ps(coord_vec[2], 0x7777, tmp_coord_vect1, tmp_coord_vect2, 0x2C);
+                _MM512_TRANSPOSE4_PS(coord_vec[0], coord_vec[1], coord_vec[2], extra_row);
+
+                _mm512_storeu_ps(amplitudes_+i*n_rec*3+r_ind*3, coord_vec[0]);
+                _mm512_storeu_ps(amplitudes_+i*n_rec*3+r_ind*3+12, coord_vec[1]);
+                _mm512_storeu_ps(amplitudes_+i*n_rec*3+r_ind*3+24, coord_vec[2]);
+                _mm512_mask_storeu_ps(amplitudes_+i*n_rec*3+r_ind*3+36, 0xFFF0, extra_row);
             }
         }     
     }
@@ -205,41 +228,25 @@ template<>
 void AmplitudesCalculatorM512<double>::realize_calculate() {
     ptrdiff_t matrix_size = 6;
     ptrdiff_t vector_dim = sizeof(__m512d)/sizeof(double);
-    std::unique_ptr<__m512d[], decltype(free)*> vect_rec_coord{static_cast<__m512d*>(aligned_alloc(sizeof(__m512d), sizeof(__m512d)*(n_rec/vector_dim)*3)), free};
 
     #pragma omp parallel
     {
-        ALIGNED(64) long long indeces[vector_dim];
-        #pragma omp for collapse(2)
-        for (ptrdiff_t r_ind = 0; r_ind < n_rec-(n_rec%vector_dim); r_ind+=vector_dim) {
-            for (ptrdiff_t i = 0; i < 3; ++i) {
-                #pragma omp simd
-                for (ptrdiff_t v_s = 0; v_s < vector_dim; ++v_s) {
-                    indeces[v_s] = (r_ind+v_s)*3+i;
-                }
-                vect_rec_coord[(r_ind/vector_dim)*3+i] = _mm512_i64gather_pd(_mm512_load_si512((__m512i*)indeces), rec_coords_, 1);
-                // vect_rec_coord[(r_ind/vector_dim)*3+i] = _mm512_set_pd(rec_coords_[(r_ind+7)*3+i], rec_coords_[(r_ind+6)*3+i], rec_coords_[(r_ind+5)*3+i], rec_coords_[(r_ind+4)*3+i],
-                //                                                        rec_coords_[(r_ind+3)*3+i], rec_coords_[(r_ind+2)*3+i], rec_coords_[(r_ind+1)*3+i], rec_coords_[(r_ind)*3+i]);
-            }
-        }
-
         __m512d coord_vec[3];
         __m512d G_P_vect[matrix_size];
-        ALIGNED(64) double coords[vector_dim*3];
-        ALIGNED(64) double coords_transposed[vector_dim*3];
-        ALIGNED(64) double G_P[matrix_size*vector_dim];
+        // ALIGNED(64) double coords_transposed[vector_dim*3];
+        // ALIGNED(64) double G_P[matrix_size*vector_dim];
         #pragma omp for collapse(2)
         for (ptrdiff_t i = 0; i < sources_count; ++i) {
             for (ptrdiff_t r_ind = 0; r_ind < n_rec-(n_rec%vector_dim); r_ind+=vector_dim) {
                 for (ptrdiff_t crd = 0; crd < 3; ++crd) {
-                    coord_vec[crd] = _mm512_sub_pd(vect_rec_coord[(r_ind/vector_dim)*3+crd], _mm512_set1_pd(sources_coords_[i*3+crd]));
+                    coord_vec[crd] = _mm512_sub_pd(_mm512_set_pd(rec_coords_[(r_ind+7)*3+crd], rec_coords_[(r_ind+6)*3+crd], rec_coords_[(r_ind+5)*3+crd], rec_coords_[(r_ind+4)*3+crd],
+                                                               rec_coords_[(r_ind+3)*3+crd], rec_coords_[(r_ind+2)*3+crd], rec_coords_[(r_ind+1)*3+crd], rec_coords_[(r_ind)*3+crd]), _mm512_set1_pd(sources_coords_[i*3+crd]));
                 }
 
                 __m512d dist = vect_calc_dist(coord_vec[0], coord_vec[1], coord_vec[2]);
 
                 for (ptrdiff_t crd = 0; crd < 3; ++crd) {
                     coord_vec[crd] = _mm512_div_pd(coord_vec[crd], dist);
-                    _mm512_store_pd(coords+crd*vector_dim, coord_vec[crd]);
                     G_P_vect[crd] = _mm512_div_pd(_mm512_mul_pd(coord_vec[crd], coord_vec[crd]), dist);
                 }
 
@@ -247,17 +254,37 @@ void AmplitudesCalculatorM512<double>::realize_calculate() {
                 G_P_vect[4] = _mm512_div_pd(_mm512_mul_pd(coord_vec[0], coord_vec[2]), dist);
                 G_P_vect[5] = _mm512_div_pd(_mm512_mul_pd(coord_vec[1], coord_vec[2]), dist);
 
-                transpose_coord_vect(coords, coords_transposed);
+                // transpose_coord_vect(coords, coords_transposed);
 
+                // for (ptrdiff_t m = 0; m < matrix_size; ++m) {
+                //     _mm512_store_pd(G_P+m*vector_dim, G_P_vect[m]);
+                //     #pragma omp simd
+                //     for (ptrdiff_t v_s = 0; v_s < vector_dim; ++v_s) {
+                //         for (ptrdiff_t rec_comp = 0; rec_comp < 3; ++rec_comp) {
+                //             amplitudes_[i*n_rec*3+(r_ind+v_s)*3+rec_comp] += G_P[m*vector_dim+v_s]*coords_transposed[v_s*3+rec_comp]*tensor_matrix_[m];
+                //         }
+                //     }
+                // }
+
+                __m512d tmp_dot = _mm512_setzero_pd();
                 for (ptrdiff_t m = 0; m < matrix_size; ++m) {
-                    _mm512_store_pd(G_P+m*vector_dim, G_P_vect[m]);
-                    #pragma omp simd
-                    for (ptrdiff_t v_s = 0; v_s < vector_dim; ++v_s) {
-                        for (ptrdiff_t rec_comp = 0; rec_comp < 3; ++rec_comp) {
-                            amplitudes_[i*n_rec*3+(r_ind+v_s)*3+rec_comp] += G_P[m*vector_dim+v_s]*coords_transposed[v_s*3+rec_comp]*tensor_matrix_[m];
-                        }
-                    }
+                    tmp_dot = _mm512_add_pd(tmp_dot, _mm512_mul_pd(G_P[m], _mm512_set1_pd(tensor_matrix_[m])));
                 }
+
+                coord_vec[0] = _mm512_mul_pd(coord_vec[0], tmp_dot);
+                coord_vec[1] = _mm512_mul_pd(coord_vec[1], tmp_dot);
+                coord_vec[2] = _mm512_mul_pd(coord_vec[2], tmp_dot);
+
+                __m512d extra_row = _mm512_permute_pd(coord_vec[0], 0xFF);
+                coord_vec[0] = _mm512_shuffle_pd(coord_vec[0], coord_vec[1], 0x55);
+                coord_vec[1] = _mm512_shuffle_pd(coord_vec[1], coord_vec[2], 0x55);
+
+                _MM512_TRANSPOSE4_PD(coord_vec[0], coord_vec[1], coord_vec[2], extra_row);
+
+                _mm512_storeu_pd(amplitudes_+i*n_rec*3+r_ind*3, coord_vec[0]);
+                _mm512_storeu_pd(amplitudes_+i*n_rec*3+r_ind*3+6, coord_vec[1]);
+                _mm512_storeu_pd(amplitudes_+i*n_rec*3+r_ind*3+12, coord_vec[2]);
+                _mm512_mask_store_pd(amplitudes_+i*n_rec*3+r_ind*3+18, 0xFC, extra_row);
             }
         }      
     }

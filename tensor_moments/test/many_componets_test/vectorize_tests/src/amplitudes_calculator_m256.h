@@ -63,7 +63,7 @@ private:
     ptrdiff_t n_rec;
     T *amplitudes_;
     __m256i mask_d = _mm256_set_epi64x(0, 1, 1, 1);
-    __m128i mask_s = _mm_set_epi32(0, 1, 1, 1);
+    __m256i mask_s = _mm256_set_epi32(0, 0, 1, 1, 1, 1, 1, 1);
 
 	void realize_calculate() {}
 
@@ -76,18 +76,18 @@ private:
 	}
 
     inline void transpose_coord_vect(__m256 *src_vect, float *dest_arr) {
-        int count_part = (sizeof(__m256)/sizeof(float))/4;
-        __m256 extra_row = _mm256_setzero_ps();
+        // int count_part = (sizeof(__m256)/sizeof(float))/4;
+        // __m256 extra_row = _mm256_setzero_ps();
 
-        _MM256_TRANSPOSE4_PS(src_vect[0], src_vect[1], src_vect[2], extra_row);
-        for (ptrdiff_t ind = 0; ind < 3; ++ind) {
-            for (int part_ind = 0; part_ind < count_part; ++part_ind) {
-                _mm_maskstore_ps(dest_arr+(ind*count_part+part_ind)*3, mask_s, _mm256_extractf128_ps(src_vect[ind], part_ind));
-            }
-        }
-        for (int part_ind = 0; part_ind < count_part; ++part_ind) {
-            _mm_maskstore_ps(dest_arr+(3*count_part+part_ind)*3, mask_s, _mm256_extractf128_ps(extra_row, part_ind));
-        }
+        // _MM256_TRANSPOSE4_PS(src_vect[0], src_vect[1], src_vect[2], extra_row);
+        // for (ptrdiff_t ind = 0; ind < 3; ++ind) {
+        //     for (int part_ind = 0; part_ind < count_part; ++part_ind) {
+        //         _mm_maskstore_ps(dest_arr+(ind*count_part+part_ind)*3, mask_s, _mm256_extractf128_ps(src_vect[ind], part_ind));
+        //     }
+        // }
+        // for (int part_ind = 0; part_ind < count_part; ++part_ind) {
+        //     _mm_maskstore_ps(dest_arr+(3*count_part+part_ind)*3, mask_s, _mm256_extractf128_ps(extra_row, part_ind));
+        // }
 
         // ptrdiff_t vector_dim = sizeof(__m256)/sizeof(float);
         // ALIGNED(32) long long indeces[vector_dim];
@@ -185,20 +185,26 @@ void AmplitudesCalculatorM256<float>::realize_calculate() {
                 //     }
                 // }
 
-                ALIGNED(32) float tmp_dot[8] = {};
+                __m256 tmp_vect = _mm256_setzero_ps();
                 for (ptrdiff_t m = 0; m < matrix_size; ++m) {
-                    _mm256_store_ps(tmp_dot, _mm256_add_ps(_mm256_load_ps(tmp_dot), _mm256_mul_ps(G_P_vect[m], _mm256_set1_ps(tensor_matrix_[m]))));
-                }
+                    tmp_vect = _mm256_add_ps(tmp_vect, _mm256_mul_ps(G_P_vect[m], _mm256_set1_ps(tensor_matrix_[m])));
+                }  
 
-                __m256 extra_row = _mm256_setzero_ps();
-                _MM256_TRANSPOSE4_PS(coord_vec[0], coord_vec[1], coord_vec[2], extra_row);
+                coord_vec[0] = _mm256_mul_ps(coord_vec[0], tmp_vect);
+                coord_vec[1] = _mm256_mul_ps(coord_vec[1], tmp_vect);
+                coord_vec[2] = _mm256_mul_ps(coord_vec[2], tmp_vect);
 
-                for (ptrdiff_t ind = 0; ind < 3; ++ind) {
-                    _mm_storeu_ps(amplitudes_+i*n_rec*3+(r_ind+(ind*(vector_dim/4)))*3, _mm_mul_ps(_mm256_extractf128_ps(coord_vec[ind], 0), _mm_set1_ps(tmp_dot[ind*(vector_dim/4)])));
-                    _mm_storeu_ps(amplitudes_+i*n_rec*3+(r_ind+(ind*(vector_dim/4)+1))*3, _mm_mul_ps(_mm256_extractf128_ps(coord_vec[ind], 1), _mm_set1_ps(tmp_dot[ind*(vector_dim/4)+1])));
-                }
-                _mm_storeu_ps(amplitudes_+i*n_rec*3+r_ind*3+(3*(vector_dim/4)+0)*3, _mm_mul_ps(_mm256_extractf128_ps(extra_row, 0), _mm_set1_ps(tmp_dot[3*(vector_dim/4)])));
-                _mm_maskstore_ps(amplitudes_+i*n_rec*3+r_ind*3+(3*(vector_dim/4)+1)*3, mask_s, _mm_mul_ps(_mm256_extractf128_ps(extra_row, 1), _mm_set1_ps(tmp_dot[3*(vector_dim/4)+1])));
+                tmp_vect = _mm256_movehdup_ps(coord_vec[0]);
+                coord_vec[0] = _mm256_blend_ps(coord_vec[1], coord_vec[0], 0xAA);
+                coord_vec[1] = _mm256_blend_ps(coord_vec[2], coord_vec[1], 0xAA);
+
+                _MM256_TRANSPOSE4_PS(coord_vec[0], coord_vec[1], coord_vec[2], tmp_vect);
+
+                _mm256_storeu_ps(amplitudes_+i*n_rec*3+r_ind*3, coord_vec[0]);
+                _mm256_storeu_ps(amplitudes_+i*n_rec*3+r_ind*3+6, coord_vec[1]);
+                _mm256_storeu_ps(amplitudes_+i*n_rec*3+r_ind*3+12, coord_vec[2]);
+                _mm256_maskstore_ps(amplitudes_+i*n_rec*3+r_ind*3+18, mask_s, tmp_vect);
+
             }
         }
     }
@@ -263,22 +269,22 @@ void AmplitudesCalculatorM256<double>::realize_calculate() {
                 //     }
                 // }
 
-                ALIGNED(32) double tmp_dot[4] = {};
+                __m256d tmp_vect = _mm256_setzero_pd();
                 for (ptrdiff_t m = 0; m < matrix_size; ++m) {
-                    _mm256_store_pd(tmp_dot, _mm256_add_pd(_mm256_load_pd(tmp_dot), _mm256_mul_pd(G_P_vect[m], _mm256_set1_pd(tensor_matrix_[m]))));
+                    tmp_vect = _mm256_add_pd(tmp_vect, _mm256_mul_pd(G_P_vect[m], _mm256_set1_pd(tensor_matrix_[m])));
                 }
 
-                __m256d extra_row = _mm256_setzero_pd();
-                _MM256_TRANSPOSE4_PD(coord_vec[0], coord_vec[1], coord_vec[2], extra_row);
-                coord_vec[0] = _mm256_mul_pd(coord_vec[0], _mm256_set1_pd(tmp_dot[0]));
-                coord_vec[1] = _mm256_mul_pd(coord_vec[1], _mm256_set1_pd(tmp_dot[1]));
-                coord_vec[2] = _mm256_mul_pd(coord_vec[2], _mm256_set1_pd(tmp_dot[2]));
-                extra_row = _mm256_mul_pd(extra_row, _mm256_set1_pd(tmp_dot[3]));
+                coord_vec[0] = _mm256_mul_pd(coord_vec[0], tmp_vect);
+                coord_vec[1] = _mm256_mul_pd(coord_vec[1], tmp_vect);
+                coord_vec[2] = _mm256_mul_pd(coord_vec[2], tmp_vect);
+
+                tmp_vect = _mm256_setzero_pd();
+                _MM256_TRANSPOSE4_PD(coord_vec[0], coord_vec[1], coord_vec[2], tmp_vect);
 
                 for (ptrdiff_t shift = 0; shift < 3; ++shift) {
                     _mm256_storeu_pd(amplitudes_+i*n_rec*3+(r_ind+shift)*3, coord_vec[shift]);   
                 }
-                _mm256_maskstore_pd(amplitudes_+i*n_rec*3+(r_ind+3)*3, mask_d, extra_row);   
+                _mm256_maskstore_pd(amplitudes_+i*n_rec*3+(r_ind+3)*3, mask_d, tmp_vect);   
             }
         }         
     }

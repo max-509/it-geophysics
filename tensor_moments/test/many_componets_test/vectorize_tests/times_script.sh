@@ -16,7 +16,7 @@ g++ -O3 -pthread -march=native -mavx2 -std=c++11 -fopenmp vector_time_test.cpp -
 # ./a.out 20000 160000 >> results_times/no_vect_times.txt
 # ./a.out 20000 190000 >> results_times/no_vect_times.txt
 
-g++ -O3 -pthread -march=native -mavx2 -std=c++11 -fopenmp vector_time_test.cpp -DVECT_128
+g++ -O3 -pthread -march=native -msse2 -std=c++11 -fopenmp vector_time_test.cpp -DVECT_128
 ./a.out 10000 20000 >> tests.txt
 # ./a.out 10000 40000 >> results_times/128_vect_times.txt
 # ./a.out 10000 80000 >> results_times/128_vect_times.txt
